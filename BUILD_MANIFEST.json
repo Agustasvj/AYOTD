@@ -1,0 +1,65 @@
+{
+  "project": "A Year or Two Delicacies (AYOTD)",
+  "slug": "ayotd-platform",
+  "version": "1.0.0",
+  "status": "production-ready-foundation",
+  "interfaces": {
+    "customer": {
+      "storefront": "/",
+      "checkout": "/checkout",
+      "order_tracking": "/track"
+    },
+    "staff": {
+      "overview": "/admin",
+      "orders_queue": "/admin/orders",
+      "manual_order_entry": "/admin/orders/new",
+      "kitchen_display_system": "/admin/kitchen",
+      "delivery_logistics": "/admin/deliveries",
+      "rider_mobile_portal": "/rider",
+      "menu_pricing_manager": "/admin/menu",
+      "whatsapp_inbox": "/admin/whatsapp",
+      "payments_ledger": "/admin/payments",
+      "customer_directory": "/admin/customers",
+      "analytics_reports": "/admin/analytics"
+    }
+  },
+  "api_endpoints": [
+    "POST /api/orders",
+    "GET  /api/orders/track",
+    "GET  /api/menu",
+    "POST /api/payments/stk-push",
+    "POST /api/payments/mpesa/callback",
+    "POST /api/payments/cash/confirm",
+    "GET  /api/webhooks/whatsapp",
+    "POST /api/webhooks/whatsapp",
+    "GET  /api/admin/orders",
+    "POST /api/admin/orders/manual",
+    "POST /api/admin/orders/[id]/status",
+    "POST /api/admin/orders/[id]/assign",
+    "GET  /api/admin/menu",
+    "POST /api/admin/menu",
+    "PATCH /api/admin/menu",
+    "GET  /api/admin/payments",
+    "GET  /api/admin/customers",
+    "GET  /api/admin/riders",
+    "GET  /api/admin/whatsapp",
+    "PATCH /api/admin/whatsapp",
+    "GET  /api/health"
+  ],
+  "database": {
+    "tables_count": 17,
+    "migration_file": "supabase/migrations/001_initial_schema.sql",
+    "seed_file": "supabase/seed.sql"
+  },
+  "tests": {
+    "framework": "node:test",
+    "suites": [
+      "tests/cart-money.test.ts",
+      "tests/validation.test.ts",
+      "tests/daraja.test.ts",
+      "tests/whatsapp.test.ts",
+      "tests/orders-lifecycle.test.ts"
+    ],
+    "count": 21
+  }
+}

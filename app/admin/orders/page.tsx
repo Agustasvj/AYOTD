@@ -160,10 +160,17 @@ export default function AdminOrdersPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <Link
+            href="/admin/deliveries/print"
+            className="p-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white text-xs flex items-center gap-1.5 transition"
+            title="Print consolidated delivery manifest"
+          >
+            <Printer size={14} /> Delivery Run Sheet (PDF)
+          </Link>
           <button
             onClick={() => loadOrders()}
-            className="p-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white text-xs flex items-center gap-1.5"
+            className="p-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white text-xs flex items-center gap-1.5 transition"
             title="Refresh list"
           >
             <RefreshCw size={14} className={loading ? "animate-spin" : ""} /> Refresh

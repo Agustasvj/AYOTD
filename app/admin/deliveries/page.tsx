@@ -116,12 +116,20 @@ export default function DeliveriesPage() {
           </p>
         </div>
 
-        <button
-          onClick={() => loadData()}
-          className="p-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white text-xs flex items-center gap-1.5 self-start sm:self-auto"
-        >
-          <RefreshCw size={14} className={loading ? "animate-spin" : ""} /> Refresh Deliveries
-        </button>
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          <Link
+            href="/admin/deliveries/print"
+            className="p-2.5 rounded-xl bg-crimson-600 hover:bg-crimson-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-lg shadow-crimson-950/40 transition active:scale-95"
+          >
+            <Printer size={14} /> Print Run Sheet (PDF)
+          </Link>
+          <button
+            onClick={() => loadData()}
+            className="p-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white text-xs flex items-center gap-1.5 transition"
+          >
+            <RefreshCw size={14} className={loading ? "animate-spin" : ""} /> Refresh Deliveries
+          </button>
+        </div>
       </div>
 
       {loading ? (

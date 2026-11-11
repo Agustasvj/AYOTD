@@ -22,3 +22,12 @@ export const formatKenyanPhone = (phone: string): string => {
   }
   return clean;
 };
+
+export const formatDisplayPhone = (phone: string): string => {
+  if (!phone) return "";
+  const norm = formatKenyanPhone(phone);
+  if (norm.startsWith("254") && norm.length === 12) {
+    return `+254 ${norm.slice(3, 6)} ${norm.slice(6, 9)} ${norm.slice(9)}`;
+  }
+  return phone;
+};

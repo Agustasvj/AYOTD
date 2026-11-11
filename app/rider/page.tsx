@@ -87,12 +87,21 @@ export default function RiderPortalPage() {
           </div>
         </div>
 
-        <button
-          onClick={() => loadMyDeliveries()}
-          className="p-2 rounded-lg bg-zinc-900 border border-zinc-800 text-xs flex items-center gap-1 text-zinc-300"
-        >
-          <RefreshCw size={13} className={loading ? "animate-spin" : ""} /> Refresh
-        </button>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/admin/deliveries/print"
+            className="p-2 rounded-lg bg-crimson-600 hover:bg-crimson-500 text-white text-xs font-bold flex items-center gap-1 shadow-md shadow-crimson-950/40"
+            title="Print master batch delivery sheet"
+          >
+            <Printer size={13} /> Sheet (PDF)
+          </Link>
+          <button
+            onClick={() => loadMyDeliveries()}
+            className="p-2 rounded-lg bg-zinc-900 border border-zinc-800 text-xs flex items-center gap-1 text-zinc-300"
+          >
+            <RefreshCw size={13} className={loading ? "animate-spin" : ""} /> Refresh
+          </button>
+        </div>
       </div>
 
       <div className="mt-4">

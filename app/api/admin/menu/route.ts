@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { menuItemSchema, categorySchema } from "@/lib/validation";
+import { invalidateMenuCache } from "@/lib/menu-cache";
 
 export async function POST(req: Request) {
   const body = await req.json().catch(() => null);
@@ -53,6 +54,7 @@ export async function POST(req: Request) {
         .single();
 
       if (error) throw new Error(error.message);
+      invalidateMenuCache();
       return NextResponse.json({ success: true, item: data });
     }
   } catch (err) {
@@ -91,6 +93,7 @@ export async function PATCH(req: Request) {
 
     if (error) throw new Error(error.message);
 
+    invalidateMenuCache();
     return NextResponse.json({ success: true, id });
   } catch (err) {
     return NextResponse.json(

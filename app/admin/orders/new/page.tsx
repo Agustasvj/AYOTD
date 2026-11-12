@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import type { MenuItem } from "@/lib/types";
+import { demoMenu } from "@/lib/demo-menu";
 import { kes, KES_DELIVERY_FEE } from "@/lib/money";
 import { validateKenyanPhone } from "@/lib/validation";
 import {
@@ -25,8 +26,8 @@ function ManualOrderContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [menu, setMenu] = useState<MenuItem[]>([]);
-  const [loadingMenu, setLoadingMenu] = useState(true);
+  const [menu, setMenu] = useState<MenuItem[]>(demoMenu);
+  const [loadingMenu, setLoadingMenu] = useState(false);
 
   // Form State
   const [customerName, setCustomerName] = useState("");
@@ -53,14 +54,11 @@ function ManualOrderContent() {
       .then((r) => r.json())
       .then((d) => {
         const items = d.items || [];
-        setMenu(items);
-        if (items.length > 0 && orderLines.length === 0) {
-          // Preselect first item
-          setOrderLines([{ menuItemId: items[0].id, quantity: 1 }]);
+        if (items.length > 0) {
+          setMenu(items);
         }
       })
-      .catch(() => setMenu([]))
-      .finally(() => setLoadingMenu(false));
+      .catch(() => {});
   }, []);
 
   function addLine() {

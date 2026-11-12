@@ -7,6 +7,7 @@ import { FoodModal } from "@/components/food-modal";
 import { CartDrawer } from "@/components/cart-drawer";
 import { FloatingCart } from "@/components/floating-cart";
 import type { CartLine, MenuItem, Category } from "@/lib/types";
+import { demoMenu, demoCategories } from "@/lib/demo-menu";
 import { kes } from "@/lib/money";
 import Link from "next/link";
 import {
@@ -24,26 +25,29 @@ import {
 } from "lucide-react";
 
 export default function HomePage() {
-  const [menu, setMenu] = useState<MenuItem[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
+  // Pre-initialize with default catalog for instant 0ms First Contentful Paint
+  const [menu, setMenu] = useState<MenuItem[]>(demoMenu);
+  const [categories, setCategories] = useState<Category[]>(demoCategories);
   const [activeCategory, setActiveCategory] = useState<string>("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [cart, setCart] = useState<CartLine[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [selectedMeal, setSelectedMeal] = useState<MenuItem | null>(null);
 
   useEffect(() => {
+    // Silently fetch and sync real-time database updates in the background
     fetch("/api/menu")
       .then((r) => r.json())
       .then((d) => {
-        setMenu(d.items || []);
+        if (d.items && d.items.length > 0) {
+          setMenu(d.items);
+        }
         if (d.categories && d.categories.length > 0) {
           setCategories(d.categories);
         }
       })
-      .catch(() => setMenu([]))
-      .finally(() => setLoading(false));
+      .catch(() => {});
   }, []);
 
   // Category pills list
@@ -233,8 +237,8 @@ export default function HomePage() {
                 Explore Our Campus Menu
               </h2>
               <p className="text-zinc-400 text-sm mt-2 max-w-xl">
-                Select your favourite meals below. All orders are recorded directly in our
-                central kitchen queue for rapid preparation.
+                Freshly prepared authentic Swahili and student-favourite dishes, cooked daily and
+                delivered warm to your hostel or ready for collection.
               </p>
             </div>
 

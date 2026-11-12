@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { SiteHeader } from "@/components/site-header";
 import type { MenuItem } from "@/lib/types";
+import { demoMenu } from "@/lib/demo-menu";
 import { kes, KES_DELIVERY_FEE } from "@/lib/money";
 import { validateKenyanPhone } from "@/lib/validation";
 import {
@@ -24,15 +25,19 @@ import {
 function CheckoutContent() {
   const router = useRouter();
   const params = useSearchParams();
-  const [menu, setMenu] = useState<MenuItem[]>([]);
-  const [menuLoading, setMenuLoading] = useState(true);
+  // Initialize with demoMenu so checkout items resolve instantly
+  const [menu, setMenu] = useState<MenuItem[]>(demoMenu);
+  const [menuLoading, setMenuLoading] = useState(false);
 
   useEffect(() => {
     fetch("/api/menu")
       .then((r) => r.json())
-      .then((d) => setMenu(d.items || []))
-      .catch(() => setMenu([]))
-      .finally(() => setMenuLoading(false));
+      .then((d) => {
+        if (d.items && d.items.length > 0) {
+          setMenu(d.items);
+        }
+      })
+      .catch(() => {});
   }, []);
 
   // Parse items from query param
@@ -175,12 +180,8 @@ function CheckoutContent() {
             Confirm Your Meal
           </h1>
           <p className="text-zinc-400 text-xs sm:text-sm mt-1">
-            Guest checkout active. No registration or password required.
+            Enter your delivery details and choose your preferred payment method.
           </p>
-        </div>
-
-        <div className="flex items-center gap-2 text-xs text-emerald-400 bg-emerald-950/60 border border-emerald-800/40 px-3 py-1.5 rounded-full">
-          <ShieldCheck size={14} /> Server verified pricing in KES
         </div>
       </div>
 

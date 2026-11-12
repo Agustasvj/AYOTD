@@ -4,6 +4,7 @@ import { createOrderSchema } from "@/lib/validation";
 import { demoMenu } from "@/lib/demo-menu";
 import { KES_DELIVERY_FEE } from "@/lib/money";
 import { dispatchOrderStatusNotification } from "@/lib/notifications";
+import { invalidatePrefix } from "@/lib/fast-cache";
 
 export async function POST(request: Request) {
   const parsed = createOrderSchema.safeParse(await request.json().catch(() => null));
@@ -158,12 +159,15 @@ export async function POST(request: Request) {
       });
     }
 
+    // Invalidate cached order lists so admin portal updates immediately
+    invalidatePrefix("orders:");
+
     // Fire non-blocking WhatsApp alert if configured
     dispatchOrderStatusNotification({
       orderNumber: order.order_number,
       customerName: input.customerName,
       customerPhone: input.phone,
-      status: "ACCEPTED",
+      status: "PENDING",
       totalAmount: grandTotal,
       fulfilmentType: input.fulfilmentType,
       deliveryAddress: input.address,

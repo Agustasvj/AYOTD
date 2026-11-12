@@ -25,8 +25,10 @@ export default function DeliveriesPage() {
   const [loading, setLoading] = useState(true);
   const [actionBusy, setActionBusy] = useState<string | null>(null);
 
-  async function loadData() {
-    setLoading(true);
+  async function loadData(silent = false) {
+    if (!silent && deliveries.length === 0) {
+      setLoading(true);
+    }
     try {
       const [ordersRes, ridersRes] = await Promise.all([
         fetch("/api/admin/orders?limit=100"),
@@ -44,7 +46,7 @@ export default function DeliveriesPage() {
       );
       setDeliveries(delOrders);
     } catch {
-      setDeliveries([]);
+      if (deliveries.length === 0) setDeliveries([]);
     } finally {
       setLoading(false);
     }

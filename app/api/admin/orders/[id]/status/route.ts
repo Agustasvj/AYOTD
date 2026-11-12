@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { updateOrderStatusSchema } from "@/lib/validation";
 import { dispatchOrderStatusNotification } from "@/lib/notifications";
+import { invalidatePrefix } from "@/lib/fast-cache";
 
 export async function POST(
   req: Request,
@@ -126,6 +127,9 @@ export async function POST(
         appUrl: process.env.NEXT_PUBLIC_APP_URL
       }).catch((e) => console.error("Notification trigger error:", e));
     }
+
+    // Invalidate cached order lists so changes reflect immediately
+    invalidatePrefix("orders:");
 
     return NextResponse.json({
       success: true,

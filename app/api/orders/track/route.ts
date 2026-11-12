@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
+import { getFromCache, setToCache } from "@/lib/fast-cache";
 
 export async function GET(req: Request) {
   const url = new URL(req.url);
@@ -10,6 +11,19 @@ export async function GET(req: Request) {
       { error: "Please enter a valid order reference (e.g. AYOTD-12345678)." },
       { status: 400 }
     );
+  }
+
+  const cacheKey = `track:${number.toUpperCase()}`;
+  const { data: cached } = getFromCache<{ order?: any; error?: string }>(cacheKey);
+  if (cached) {
+    const isErr = Boolean(cached.error);
+    return NextResponse.json(cached, {
+      status: isErr ? 404 : 200,
+      headers: {
+        "Cache-Control": "private, max-age=2, stale-while-revalidate=10",
+        "X-AYOTD-Cache": "HIT"
+      }
+    });
   }
 
   const db = getSupabaseAdmin();
@@ -68,10 +82,17 @@ export async function GET(req: Request) {
       .maybeSingle();
 
     if (error || !order) {
-      return NextResponse.json(
-        { error: "We could not find an order matching that reference. Please check and try again." },
-        { status: 404 }
-      );
+      const notFoundPayload = {
+        error: "We could not find an order matching that reference. Please check and try again."
+      };
+      setToCache(cacheKey, notFoundPayload, 5000, 15000);
+      return NextResponse.json(notFoundPayload, {
+        status: 404,
+        headers: {
+          "Cache-Control": "private, max-age=5",
+          "X-AYOTD-Cache": "MISS-404"
+        }
+      });
     }
 
     const riderProfile = (order.deliveries as any)?.[0]?.profiles;
@@ -83,7 +104,7 @@ export async function GET(req: Request) {
       dispatchHistory?.created_at ||
       null;
 
-    return NextResponse.json({
+    const payload = {
       order: {
         order_number: order.order_number,
         status: order.status,
@@ -108,6 +129,15 @@ export async function GET(req: Request) {
           note: h.note,
           created_at: h.created_at
         }))
+      }
+    };
+
+    setToCache(cacheKey, payload, 3000, 30000);
+
+    return NextResponse.json(payload, {
+      headers: {
+        "Cache-Control": "private, max-age=2, stale-while-revalidate=10",
+        "X-AYOTD-Cache": "MISS"
       }
     });
   } catch (err) {

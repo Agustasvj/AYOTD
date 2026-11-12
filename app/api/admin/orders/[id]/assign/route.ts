@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { assignRiderSchema } from "@/lib/validation";
+import { invalidatePrefix } from "@/lib/fast-cache";
 
 export async function POST(
   req: Request,
@@ -82,6 +83,9 @@ export async function POST(
       status: "ASSIGNED",
       note: `Delivery assigned to rider ${rider.full_name}`
     });
+
+    // Invalidate cached order lists so assigned rider shows immediately
+    invalidatePrefix("orders:");
 
     return NextResponse.json({
       success: true,

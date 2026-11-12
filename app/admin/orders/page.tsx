@@ -43,8 +43,10 @@ export default function AdminOrdersPage() {
   const [riders, setRiders] = useState<any[]>([]);
   const [assignRiderId, setAssignRiderId] = useState("");
 
-  async function loadOrders() {
-    setLoading(true);
+  async function loadOrders(silent = false) {
+    if (!silent && orders.length === 0) {
+      setLoading(true);
+    }
     try {
       const q = new URLSearchParams();
       if (activeTab !== "ALL") q.set("status", activeTab);
@@ -55,7 +57,7 @@ export default function AdminOrdersPage() {
       const data = await res.json();
       setOrders(data.orders || []);
     } catch {
-      setOrders([]);
+      if (orders.length === 0) setOrders([]);
     } finally {
       setLoading(false);
     }

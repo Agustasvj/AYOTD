@@ -1,3 +1,6 @@
+import { demoMenu, demoCategories } from "./demo-menu";
+import { getFromCache, setToCache, invalidatePrefix } from "./fast-cache";
+
 export interface MenuCacheEntry {
   items: any[];
   categories: any[];
@@ -5,29 +8,43 @@ export interface MenuCacheEntry {
   cachedAt: number;
 }
 
-let cachedPublicMenu: MenuCacheEntry | null = null;
-const CACHE_TTL_MS = 60 * 1000; // 60s in-memory cache
+const MENU_KEY = "menu:public";
+const MENU_TTL_MS = 60 * 1000; // 60s fresh
+const MENU_STALE_MS = 10 * 60 * 1000; // 10 minutes stale
 
-export function getCachedMenu(includeUnavailable: boolean): MenuCacheEntry | null {
-  if (includeUnavailable) return null;
-  if (cachedPublicMenu && Date.now() - cachedPublicMenu.cachedAt < CACHE_TTL_MS) {
-    return cachedPublicMenu;
+export function getCachedMenu(includeUnavailable: boolean): {
+  data: MenuCacheEntry | null;
+  status: "FRESH" | "STALE" | "MISS";
+} {
+  if (includeUnavailable) {
+    return { data: null, status: "MISS" };
   }
-  return null;
+  const result = getFromCache<MenuCacheEntry>(MENU_KEY);
+  return {
+    data: result.data,
+    status: result.status
+  };
 }
 
 export function setCachedMenu(entry: Omit<MenuCacheEntry, "cachedAt">) {
-  cachedPublicMenu = {
+  const fullEntry: MenuCacheEntry = {
     ...entry,
+    cachedAt: Date.now()
+  };
+  setToCache(MENU_KEY, fullEntry, MENU_TTL_MS, MENU_STALE_MS);
+}
+
+export function getStaleMenu(): MenuCacheEntry {
+  const cached = getFromCache<MenuCacheEntry>(MENU_KEY);
+  if (cached.data) return cached.data;
+  return {
+    items: demoMenu,
+    categories: demoCategories,
+    demo: false,
     cachedAt: Date.now()
   };
 }
 
-export function getStaleMenu(): MenuCacheEntry | null {
-  return cachedPublicMenu;
-}
-
 export function invalidateMenuCache() {
-  cachedPublicMenu = null;
+  invalidatePrefix("menu:");
 }
-

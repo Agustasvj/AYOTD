@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { z } from "zod";
+import { invalidatePrefix } from "@/lib/fast-cache";
 
 const confirmCashSchema = z.object({
   orderId: z.string().min(1, "Order ID is required"),
@@ -150,6 +151,9 @@ export async function POST(req: Request) {
         amount: totalAmount
       }
     });
+
+    // Invalidate cached order lists so paid/completed status reflects immediately
+    invalidatePrefix("orders:");
 
     return NextResponse.json({
       success: true,

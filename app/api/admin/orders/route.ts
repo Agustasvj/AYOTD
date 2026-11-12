@@ -1,5 +1,11 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
+import {
+  getFromCache,
+  setToCache,
+  shouldRevalidate,
+  finishRevalidation
+} from "@/lib/fast-cache";
 
 function getFallbackOrders() {
   return [
@@ -106,6 +112,75 @@ function getFallbackOrders() {
   ];
 }
 
+async function fetchFreshOrders(
+  status: string | null,
+  source: string | null,
+  search: string | undefined,
+  limit: number
+) {
+  const db = getSupabaseAdmin();
+  if (!db) return getFallbackOrders();
+
+  let query = db
+    .from("orders")
+    .select(`
+      id,
+      order_number,
+      source,
+      status,
+      fulfilment_type,
+      delivery_address,
+      instructions,
+      subtotal,
+      delivery_fee,
+      total_amount,
+      payment_status,
+      created_at,
+      customers(id, full_name, phone),
+      order_items(id, item_name, quantity, unit_price, subtotal),
+      deliveries(id, status, rider_id, picked_up_at, profiles(full_name)),
+      payments(id, method, amount, status, transaction_reference)
+    `)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (status && status !== "ALL") {
+    if (status === "ACTIVE") {
+      query = query.in("status", ["PENDING", "ACCEPTED", "PREPARING", "READY"]);
+    } else {
+      query = query.eq("status", status);
+    }
+  }
+  if (source && source !== "ALL") {
+    query = query.eq("source", source);
+  }
+  if (search) {
+    query = query.or(`order_number.ilike.%${search}%,delivery_address.ilike.%${search}%`);
+  }
+
+  const { data: orders, error } = await query;
+  if (error) throw new Error(error.message);
+
+  return (orders || []).map((o: any) => ({
+    id: o.id,
+    order_number: o.order_number,
+    source: o.source,
+    status: o.status,
+    fulfilment_type: o.fulfilment_type,
+    delivery_address: o.delivery_address,
+    instructions: o.instructions,
+    subtotal: Number(o.subtotal),
+    delivery_fee: Number(o.delivery_fee),
+    total_amount: Number(o.total_amount),
+    payment_status: o.payment_status,
+    created_at: o.created_at,
+    customer: o.customers,
+    items: o.order_items,
+    delivery: o.deliveries?.[0] || null,
+    payments: o.payments || []
+  }));
+}
+
 export async function GET(req: Request) {
   const url = new URL(req.url);
   const status = url.searchParams.get("status");
@@ -113,72 +188,50 @@ export async function GET(req: Request) {
   const search = url.searchParams.get("search")?.trim();
   const limit = Math.min(Number(url.searchParams.get("limit")) || 50, 100);
 
-  const db = getSupabaseAdmin();
-  if (!db) {
-    return NextResponse.json({ orders: getFallbackOrders() });
+  const cacheKey = `orders:${status || "ALL"}:${source || "ALL"}:${search || ""}:${limit}`;
+
+  // 1. Instant Cache Check (< 1ms)
+  const { data: cached, status: cacheStatus } = getFromCache<{ orders: any[] }>(cacheKey);
+
+  if (cached) {
+    // If stale, trigger background revalidation
+    if (cacheStatus === "STALE" && shouldRevalidate(`reval:${cacheKey}`)) {
+      fetchFreshOrders(status, source, search, limit)
+        .then((fresh) => {
+          setToCache(cacheKey, { orders: fresh }, 5000, 60000);
+        })
+        .catch((err) => console.warn("Background order reval failed:", err))
+        .finally(() => finishRevalidation(`reval:${cacheKey}`));
+    }
+
+    return NextResponse.json(cached, {
+      headers: {
+        "Cache-Control": "private, max-age=3, stale-while-revalidate=15",
+        "X-AYOTD-Cache": cacheStatus
+      }
+    });
   }
 
+  // 2. Cache Miss: Fetch from Supabase with 3.5s timeout
   try {
-    let query = db
-      .from("orders")
-      .select(`
-        id,
-        order_number,
-        source,
-        status,
-        fulfilment_type,
-        delivery_address,
-        instructions,
-        subtotal,
-        delivery_fee,
-        total_amount,
-        payment_status,
-        created_at,
-        customers(id, full_name, phone),
-        order_items(id, item_name, quantity, unit_price, subtotal),
-        deliveries(id, status, rider_id, picked_up_at, profiles(full_name)),
-        payments(id, method, amount, status, transaction_reference)
-      `)
-      .order("created_at", { ascending: false })
-      .limit(limit);
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("Supabase query timeout (3500ms)")), 3500)
+    );
 
-    if (status && status !== "ALL") {
-      if (status === "ACTIVE") {
-        query = query.in("status", ["PENDING", "ACCEPTED", "PREPARING", "READY"]);
-      } else {
-        query = query.eq("status", status);
+    const fresh = await Promise.race([
+      fetchFreshOrders(status, source, search, limit),
+      timeoutPromise
+    ]);
+
+    const payload = { orders: fresh };
+    setToCache(cacheKey, payload, 5000, 60000);
+
+    return NextResponse.json(payload, {
+      headers: {
+        "Cache-Control": "private, max-age=3, stale-while-revalidate=15",
+        "X-AYOTD-Cache": "MISS"
       }
-    }
-    if (source && source !== "ALL") {
-      query = query.eq("source", source);
-    }
-    if (search) {
-      query = query.or(`order_number.ilike.%${search}%,delivery_address.ilike.%${search}%`);
-    }
-
-    const { data: orders, error } = await query;
-    if (error) throw new Error(error.message);
-
-    const formatted = (orders || []).map((o: any) => ({
-      id: o.id,
-      order_number: o.order_number,
-      source: o.source,
-      status: o.status,
-      fulfilment_type: o.fulfilment_type,
-      delivery_address: o.delivery_address,
-      instructions: o.instructions,
-      subtotal: Number(o.subtotal),
-      delivery_fee: Number(o.delivery_fee),
-      total_amount: Number(o.total_amount),
-      payment_status: o.payment_status,
-      created_at: o.created_at,
-      customer: o.customers,
-      items: o.order_items,
-      delivery: o.deliveries?.[0] || null,
-      payments: o.payments || []
-    }));
-
-    return NextResponse.json({ orders: formatted });
+    });
   } catch (err) {
     console.warn("Falling back to demo orders:", err instanceof Error ? err.message : err);
     return NextResponse.json({ orders: getFallbackOrders() });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState, useMemo, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { SiteHeader } from "@/components/site-header";
@@ -21,12 +21,24 @@ import {
 } from "lucide-react";
 
 const STAGES = [
-  { key: "PENDING", label: "Order Received", desc: "Sent to AYOTD kitchen team", icon: Clock },
-  { key: "ACCEPTED", label: "Order Accepted", desc: "Confirmed by kitchen supervisor", icon: CheckCircle2 },
-  { key: "PREPARING", label: "Chef Preparing", desc: "Cooking fresh on the grill & stoves", icon: ChefHat },
-  { key: "READY", label: "Packed & Ready", desc: "Ready for rider dispatch or collection", icon: PackageCheck },
-  { key: "OUT_FOR_DELIVERY", label: "Out for Delivery", desc: "Rider on the way to your campus spot", icon: Bike },
-  { key: "COMPLETED", label: "Order Fulfilled", desc: "Delivered & enjoyed", icon: Sparkles }
+  {
+    key: "QUEUED",
+    label: "Order Received & In Queue",
+    desc: "Received by AYOTD kitchen team for prompt preparation",
+    icon: Clock
+  },
+  {
+    key: "OUT_FOR_DELIVERY",
+    label: "Dispatched & On the Way",
+    desc: "Campus runner has departed with your order",
+    icon: Bike
+  },
+  {
+    key: "COMPLETED",
+    label: "Delivered & Fulfilled",
+    desc: "Delivered to your campus spot. Enjoy your meal!",
+    icon: Sparkles
+  }
 ];
 
 function TrackOrderContent() {
@@ -65,9 +77,14 @@ function TrackOrderContent() {
     }
   }, [params]);
 
-  const currentStageIndex = orderData
-    ? STAGES.findIndex((s) => s.key === orderData.status)
-    : -1;
+  // Map order status to the 3-step streamlined timeline
+  const currentStageIndex = useMemo(() => {
+    if (!orderData) return -1;
+    if (orderData.status === "COMPLETED") return 2;
+    if (orderData.status === "OUT_FOR_DELIVERY") return 1;
+    if (orderData.status === "CANCELLED") return -1;
+    return 0; // PENDING, ACCEPTED, PREPARING, READY
+  }, [orderData]);
 
   return (
     <div className="container-shell py-14 max-w-3xl">
@@ -162,6 +179,33 @@ function TrackOrderContent() {
             </div>
           </div>
 
+          {/* Dispatch Notice Banner */}
+          {(orderData.dispatched_at || orderData.status === "OUT_FOR_DELIVERY") && (
+            <div className="p-4 rounded-xl bg-gradient-to-r from-red-950/70 via-zinc-900 to-zinc-900 border border-red-800/70 flex items-center justify-between gap-3 animate-fade-in shadow-lg">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-red-600/20 border border-red-500/40 flex items-center justify-center text-red-400 shrink-0">
+                  <Bike size={20} />
+                </div>
+                <div>
+                  <div className="text-[10px] text-red-400 font-extrabold uppercase tracking-wider flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                    🚀 Dispatched For Campus Delivery
+                  </div>
+                  <div className="text-sm font-black text-white mt-0.5">
+                    {orderData.dispatched_at ? (
+                      <>Departed Kitchen at <span className="font-mono text-amber-300">{new Date(orderData.dispatched_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span></>
+                    ) : (
+                      "Dispatched & En Route"
+                    )}
+                  </div>
+                  <p className="text-[11px] text-zinc-400 mt-0.5">
+                    Your campus runner is on the way to {orderData.delivery_address || "your door"}. Please keep your phone nearby!
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Stepper Timeline */}
           <div>
             <h2 className="text-sm font-bold text-zinc-300 uppercase tracking-wider mb-6">
@@ -170,7 +214,7 @@ function TrackOrderContent() {
             <div className="relative pl-6 space-y-8 before:absolute before:left-2.5 before:top-3 before:bottom-3 before:w-0.5 before:bg-zinc-800">
               {STAGES.map((stage, idx) => {
                 const Icon = stage.icon;
-                const isCurrent = orderData.status === stage.key;
+                const isCurrent = currentStageIndex === idx;
                 const isPast = currentStageIndex > idx;
                 const isFuture = currentStageIndex < idx;
 
@@ -178,6 +222,12 @@ function TrackOrderContent() {
                 if (orderData.fulfilment_type === "PICKUP" && stage.key === "OUT_FOR_DELIVERY") {
                   return null;
                 }
+
+                // Dynamic description for dispatch stage showing recorded time
+                const stageDesc =
+                  stage.key === "OUT_FOR_DELIVERY" && orderData.dispatched_at
+                    ? `Dispatched at ${new Date(orderData.dispatched_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • Runner on the way`
+                    : stage.desc;
 
                 return (
                   <div key={stage.key} className="relative flex items-start gap-4">
@@ -223,7 +273,7 @@ function TrackOrderContent() {
                             : "text-zinc-600"
                         }`}
                       >
-                        {stage.desc}
+                        {stageDesc}
                       </p>
                     </div>
                   </div>

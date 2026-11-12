@@ -12,6 +12,7 @@ export interface OrderNotificationPayload {
   riderName?: string;
   riderPhone?: string;
   appUrl?: string;
+  dispatchedAt?: string;
 }
 
 export async function dispatchOrderStatusNotification(payload: OrderNotificationPayload) {
@@ -21,25 +22,26 @@ export async function dispatchOrderStatusNotification(payload: OrderNotification
   let message = "";
 
   switch (status) {
+    case "PENDING":
+      message = `*A Year or Two Delicacies (AYOTD)*\n\nHello ${payload.customerName}! Your order *${orderNumber}* has been received and queued for dispatch.\n\nTotal: ${kes(payload.totalAmount)}\nFulfilment: ${fulfilmentType}\n\nTrack your order in real-time:\n${trackUrl}\n\nThank you for choosing AYOTD!`;
+      break;
+
     case "ACCEPTED":
-      message = `*A Year or Two Delicacies (AYOTD)*\n\nHello ${payload.customerName}! Your order *${orderNumber}* has been ACCEPTED by our kitchen team.\n\nTotal: ${kes(payload.totalAmount)}\nFulfilment: ${fulfilmentType}\n\nTrack your order in real-time:\n${trackUrl}\n\nThank you for choosing AYOTD!`;
-      break;
-
     case "PREPARING":
-      message = `*AYOTD Kitchen Update*\n\nGreat news! The chef is now PREPARING your meal for order *${orderNumber}*. We use fresh ingredients made just for you.\n\nLive tracking: ${trackUrl}`;
-      break;
-
     case "READY":
       if (fulfilmentType === "PICKUP") {
         message = `*AYOTD Collection Ready!*\n\nYour order *${orderNumber}* is HOT & READY for collection at our kitchen counter. Please come pick it up whenever you are ready!\n\nReference: ${orderNumber}`;
       } else {
-        message = `*AYOTD Order Ready!*\n\nOrder *${orderNumber}* has been freshly packed and is awaiting rider dispatch. Tracking: ${trackUrl}`;
+        message = `*AYOTD Order Ready!*\n\nOrder *${orderNumber}* has been freshly packed and is awaiting runner dispatch. Tracking: ${trackUrl}`;
       }
       break;
 
     case "OUT_FOR_DELIVERY":
-      const riderInfo = payload.riderName ? `\nAssigned Rider: ${payload.riderName} (${payload.riderPhone || "Contact via app"})` : "";
-      message = `*AYOTD Order Out for Delivery!*\n\nYour meal *${orderNumber}* is on its way to ${payload.deliveryAddress || "your campus spot"}!${riderInfo}\n\nPlease keep your phone nearby.\nLive tracking: ${trackUrl}`;
+      const dispatchTimeStr = payload.dispatchedAt
+        ? new Date(payload.dispatchedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+        : new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      const riderInfo = payload.riderName ? `\nAssigned Runner: ${payload.riderName} (${payload.riderPhone || "Contact via app"})` : "";
+      message = `*AYOTD Order Out for Delivery!*\n\n🚀 Your meal *${orderNumber}* was DISPATCHED at *${dispatchTimeStr}* and is on the way to ${payload.deliveryAddress || "your campus spot"}!${riderInfo}\n\nPlease keep your phone nearby.\nLive tracking: ${trackUrl}`;
       break;
 
     case "COMPLETED":

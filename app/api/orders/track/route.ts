@@ -26,6 +26,7 @@ export async function GET(req: Request) {
         payment_status: "PAID",
         payment_method: "MPESA",
         created_at: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
+        dispatched_at: new Date(Date.now() - 8 * 60 * 1000).toISOString(),
         items: [
           { item_name: "Swahili Chicken Biryani", quantity: 1, unit_price: 320 },
           { item_name: "Fresh Tropical Passion & Mango Blend", quantity: 1, unit_price: 120 }
@@ -59,7 +60,7 @@ export async function GET(req: Request) {
         payment_status,
         created_at,
         order_items(id, item_name, quantity, unit_price, subtotal),
-        deliveries(id, status, rider_id, profiles(full_name, id)),
+        deliveries(id, status, rider_id, picked_up_at, profiles(full_name, id)),
         payments(id, method, amount, status),
         order_status_history(old_status, new_status, note, created_at)
       `)
@@ -74,6 +75,13 @@ export async function GET(req: Request) {
     }
 
     const riderProfile = (order.deliveries as any)?.[0]?.profiles;
+    const dispatchHistory = (order.order_status_history || []).find(
+      (h: any) => h.new_status === "OUT_FOR_DELIVERY"
+    );
+    const dispatchedAt =
+      (order.deliveries as any)?.[0]?.picked_up_at ||
+      dispatchHistory?.created_at ||
+      null;
 
     return NextResponse.json({
       order: {
@@ -87,6 +95,7 @@ export async function GET(req: Request) {
         payment_status: order.payment_status,
         payment_method: (order.payments as any)?.[0]?.method || "MPESA",
         created_at: order.created_at,
+        dispatched_at: dispatchedAt,
         items: order.order_items || [],
         rider: riderProfile
           ? {

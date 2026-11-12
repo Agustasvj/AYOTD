@@ -136,14 +136,18 @@ export async function GET(req: Request) {
         created_at,
         customers(id, full_name, phone),
         order_items(id, item_name, quantity, unit_price, subtotal),
-        deliveries(id, status, rider_id, profiles(full_name)),
+        deliveries(id, status, rider_id, picked_up_at, profiles(full_name)),
         payments(id, method, amount, status, transaction_reference)
       `)
       .order("created_at", { ascending: false })
       .limit(limit);
 
     if (status && status !== "ALL") {
-      query = query.eq("status", status);
+      if (status === "ACTIVE") {
+        query = query.in("status", ["PENDING", "ACCEPTED", "PREPARING", "READY"]);
+      } else {
+        query = query.eq("status", status);
+      }
     }
     if (source && source !== "ALL") {
       query = query.eq("source", source);

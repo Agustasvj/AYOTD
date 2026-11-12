@@ -13,7 +13,8 @@ import {
   RefreshCw,
   FolderPlus,
   DollarSign,
-  AlertCircle
+  AlertCircle,
+  Trash2
 } from "lucide-react";
 
 export default function MenuManagementPage() {
@@ -144,6 +145,47 @@ export default function MenuManagementPage() {
       }
     } catch (err) {
       alert("Failed to create category.");
+    }
+  }
+
+  async function handleDeleteMeal(id: string, name: string) {
+    if (!confirm(`Are you sure you want to permanently delete "${name}" from the menu?`)) {
+      return;
+    }
+    setBusyId(id);
+    try {
+      const res = await fetch(`/api/admin/menu?id=${id}&type=item`, {
+        method: "DELETE"
+      });
+      if (res.ok) {
+        setItems((prev) => prev.filter((x) => x.id !== id));
+      } else {
+        const d = await res.json();
+        alert(d.error || "Failed to delete meal.");
+      }
+    } catch {
+      alert("Network error deleting meal.");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function handleDeleteCategory(id: string, name: string) {
+    if (!confirm(`Delete category "${name}"? Dishes in this category will remain unassigned.`)) {
+      return;
+    }
+    try {
+      const res = await fetch(`/api/admin/menu?id=${id}&type=category`, {
+        method: "DELETE"
+      });
+      if (res.ok) {
+        setCategories((prev) => prev.filter((x) => x.id !== id));
+      } else {
+        const d = await res.json();
+        alert(d.error || "Failed to delete category.");
+      }
+    } catch {
+      alert("Network error deleting category.");
     }
   }
 
@@ -317,13 +359,23 @@ export default function MenuManagementPage() {
                       </td>
 
                       <td className="p-4 text-right">
-                        <button
-                          onClick={() => toggleAvailability(it.id, it.is_available)}
-                          disabled={isBusy}
-                          className="text-xs text-zinc-400 hover:text-white"
-                        >
-                          {it.is_available ? "Mark Sold Out" : "Mark Ready"}
-                        </button>
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => toggleAvailability(it.id, it.is_available)}
+                            disabled={isBusy}
+                            className="text-xs text-zinc-400 hover:text-white px-2.5 py-1 rounded-lg bg-zinc-900 border border-zinc-800 hover:border-zinc-700 transition"
+                          >
+                            {it.is_available ? "Mark Sold Out" : "Mark Ready"}
+                          </button>
+                          <button
+                            onClick={() => handleDeleteMeal(it.id, it.name)}
+                            disabled={isBusy}
+                            className="p-1.5 rounded-lg text-zinc-500 hover:text-rose-400 hover:bg-rose-950/50 border border-transparent hover:border-rose-900/60 transition"
+                            title={`Delete "${it.name}"`}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );

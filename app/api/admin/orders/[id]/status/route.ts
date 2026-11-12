@@ -77,12 +77,27 @@ export async function POST(
     });
 
     // 4. If delivery order, sync delivery record status
+    const dispatchTimestamp = new Date().toISOString();
     if (order.fulfilment_type === "DELIVERY") {
       if (status === "OUT_FOR_DELIVERY") {
-        await db
+        const { data: existingDel } = await db
           .from("deliveries")
-          .update({ status: "IN_TRANSIT", picked_up_at: new Date().toISOString() })
-          .eq("order_id", id);
+          .select("id")
+          .eq("order_id", id)
+          .maybeSingle();
+
+        if (existingDel) {
+          await db
+            .from("deliveries")
+            .update({ status: "IN_TRANSIT", picked_up_at: dispatchTimestamp })
+            .eq("order_id", id);
+        } else {
+          await db.from("deliveries").insert({
+            order_id: id,
+            status: "IN_TRANSIT",
+            picked_up_at: dispatchTimestamp
+          });
+        }
       } else if (status === "COMPLETED") {
         await db
           .from("deliveries")
@@ -107,6 +122,7 @@ export async function POST(
         totalAmount: Number(order.total_amount),
         fulfilmentType: order.fulfilment_type,
         deliveryAddress: order.delivery_address,
+        dispatchedAt: status === "OUT_FOR_DELIVERY" ? dispatchTimestamp : undefined,
         appUrl: process.env.NEXT_PUBLIC_APP_URL
       }).catch((e) => console.error("Notification trigger error:", e));
     }

@@ -231,42 +231,50 @@ function ManualOrderContent() {
             </div>
 
             <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="block text-xs font-semibold text-zinc-400">
-                  Customer Phone *
-                </label>
-                {phoneCheck && (
-                  <span
-                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 ${
-                      phoneCheck.isValid
-                        ? "bg-emerald-950/80 text-emerald-400 border border-emerald-800/60"
-                        : "bg-rose-950/80 text-rose-300 border border-rose-900/60"
-                    }`}
-                  >
-                    {phoneCheck.isValid ? (
-                      <>
-                        <Check size={10} /> {phoneCheck.carrier} ({phoneCheck.formatted})
-                      </>
-                    ) : (
-                      phoneCheck.error
-                    )}
-                  </span>
-                )}
-              </div>
+              <label className="block text-xs font-semibold text-zinc-400 mb-2">
+                Customer Phone *
+              </label>
               <input
                 required
                 type="tel"
+                inputMode="numeric"
+                maxLength={10}
                 placeholder="07XXXXXXXX or 01XXXXXXXX"
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                onChange={(e) => {
+                  let digits = e.target.value.replace(/\D/g, "");
+                  if (digits.startsWith("254")) {
+                    digits = "0" + digits.slice(3);
+                  }
+                  setPhone(digits.slice(0, 10));
+                }}
                 className={`text-xs sm:text-sm ${
-                  phoneCheck
-                    ? phoneCheck.isValid
+                  phone.length === 10
+                    ? phoneCheck?.isValid
                       ? "border-emerald-600/80"
                       : "border-rose-600/80"
                     : ""
                 }`}
               />
+              <div className="min-h-[18px] mt-1">
+                {!phone ? (
+                  <p className="text-[11px] text-zinc-500">
+                    10-digit number (e.g. 0712345678 or 0112345678)
+                  </p>
+                ) : phone.length < 10 ? (
+                  <p className="text-[11px] text-amber-400 font-medium">
+                    Number is too short ({phone.length}/10 digits)
+                  </p>
+                ) : phoneCheck?.isValid ? (
+                  <p className="text-[11px] text-emerald-400 font-medium flex items-center gap-1">
+                    <Check size={11} /> {phoneCheck.carrier} ({phoneCheck.formatted})
+                  </p>
+                ) : (
+                  <p className="text-[11px] text-rose-400 font-medium">
+                    {phoneCheck?.error || "Must start with 07 or 01"}
+                  </p>
+                )}
+              </div>
             </div>
           </div>
         </div>

@@ -34,6 +34,34 @@ export default function HomePage() {
   const [loading, setLoading] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [selectedMeal, setSelectedMeal] = useState<MenuItem | null>(null);
+  const [isCartHydrated, setIsCartHydrated] = useState(false);
+
+  // Restore customer cart from localStorage so refreshes don't wipe items
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("ayotd_cart");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setCart(parsed);
+        }
+      }
+    } catch {
+      // ignore
+    } finally {
+      setIsCartHydrated(true);
+    }
+  }, []);
+
+  // Persist cart to localStorage on changes
+  useEffect(() => {
+    if (!isCartHydrated) return;
+    try {
+      localStorage.setItem("ayotd_cart", JSON.stringify(cart));
+    } catch {
+      // ignore
+    }
+  }, [cart, isCartHydrated]);
 
   useEffect(() => {
     // Silently fetch and sync real-time database updates in the background
@@ -104,6 +132,11 @@ export default function HomePage() {
 
   function clearCart() {
     setCart([]);
+    try {
+      localStorage.removeItem("ayotd_cart");
+    } catch {
+      // ignore
+    }
   }
 
   const cartCount = cart.reduce((s, x) => s + x.quantity, 0);

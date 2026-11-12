@@ -103,3 +103,33 @@ export async function PATCH(req: Request) {
   }
 }
 
+export async function DELETE(req: Request) {
+  const url = new URL(req.url);
+  const id = url.searchParams.get("id");
+  const type = url.searchParams.get("type") || "item";
+
+  if (!id) {
+    return NextResponse.json({ error: "Item ID is required for deletion" }, { status: 400 });
+  }
+
+  const db = getSupabaseAdmin();
+  if (!db) {
+    invalidateMenuCache();
+    return NextResponse.json({ success: true, id, message: "Deleted (demo mode)" });
+  }
+
+  try {
+    const table = type === "category" ? "categories" : "menu_items";
+    const { error } = await db.from(table).delete().eq("id", id);
+    if (error) throw new Error(error.message);
+
+    invalidateMenuCache();
+    return NextResponse.json({ success: true, id });
+  } catch (err) {
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "Failed to delete item." },
+      { status: 500 }
+    );
+  }
+}
+

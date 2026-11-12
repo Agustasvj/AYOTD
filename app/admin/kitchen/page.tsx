@@ -25,9 +25,9 @@ export default function KitchenDisplayPage() {
       const res = await fetch("/api/admin/orders?limit=50");
       const data = await res.json();
       const allOrders = data.orders || [];
-      // Filter for kitchen active orders: ACCEPTED or PREPARING
+      // Filter for active orders to prepare/dispatch
       const active = allOrders.filter((o: any) =>
-        ["ACCEPTED", "PREPARING"].includes(o.status)
+        ["PENDING", "ACCEPTED", "PREPARING", "READY"].includes(o.status)
       );
       setOrders(active);
     } catch {
@@ -209,23 +209,23 @@ export default function KitchenDisplayPage() {
                   </div>
                 </div>
 
-                {/* Bottom Action Button */}
+                {/* Bottom Action Button: Single-step Dispatch */}
                 <div className="p-4 border-t border-zinc-800 bg-zinc-950">
-                  {o.status === "ACCEPTED" ? (
+                  {o.fulfilment_type === "DELIVERY" ? (
                     <button
-                      onClick={() => updateStatus(o.id, "PREPARING")}
+                      onClick={() => updateStatus(o.id, "OUT_FOR_DELIVERY")}
                       disabled={isBusy}
-                      className="btn-primary w-full bg-orange-700 hover:bg-orange-600 text-xs py-3 flex items-center justify-center gap-2 font-bold"
+                      className="btn-primary w-full bg-crimson-600 hover:bg-crimson-500 text-xs py-3 flex items-center justify-center gap-2 font-bold shadow-lg shadow-crimson-950/60"
                     >
-                      <ChefHat size={16} /> Start Cooking Dish
+                      <Truck size={16} /> 🚀 Dispatch for Campus Delivery
                     </button>
                   ) : (
                     <button
-                      onClick={() => updateStatus(o.id, "READY")}
+                      onClick={() => updateStatus(o.id, "COMPLETED")}
                       disabled={isBusy}
-                      className="btn-primary w-full bg-purple-700 hover:bg-purple-600 text-xs py-3 flex items-center justify-center gap-2 font-bold"
+                      className="btn-primary w-full bg-emerald-600 hover:bg-emerald-500 text-xs py-3 flex items-center justify-center gap-2 font-bold"
                     >
-                      <PackageCheck size={16} /> Mark Dish Cooked & Ready
+                      <PackageCheck size={16} /> ✓ Hand Over / Collected
                     </button>
                   )}
                 </div>

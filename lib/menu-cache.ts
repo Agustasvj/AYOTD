@@ -30,3 +30,4 @@ export function getStaleMenu(): MenuCacheEntry | null {
 export function invalidateMenuCache() {
   cachedPublicMenu = null;
 }
+

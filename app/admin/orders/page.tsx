@@ -23,14 +23,11 @@ import {
 } from "lucide-react";
 
 const STATUS_TABS = [
-  "ALL",
-  "PENDING",
-  "ACCEPTED",
-  "PREPARING",
-  "READY",
-  "OUT_FOR_DELIVERY",
-  "COMPLETED",
-  "CANCELLED"
+  { key: "ALL", label: "All Orders" },
+  { key: "ACTIVE", label: "⚡ Active Queue (To Dispatch)" },
+  { key: "OUT_FOR_DELIVERY", label: "🚀 Out for Delivery" },
+  { key: "COMPLETED", label: "✓ Completed" },
+  { key: "CANCELLED", label: "Cancelled" }
 ] as const;
 
 export default function AdminOrdersPage() {
@@ -188,15 +185,15 @@ export default function AdminOrdersPage() {
       <div className="flex items-center gap-2 overflow-x-auto pb-2 no-scrollbar">
         {STATUS_TABS.map((tab) => (
           <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
             className={`whitespace-nowrap px-4 py-2 rounded-xl text-xs font-semibold transition-all border ${
-              activeTab === tab
-                ? "bg-red-700 border-red-600 text-white shadow-md shadow-red-950"
+              activeTab === tab.key
+                ? "bg-red-700 border-red-600 text-white shadow-md shadow-red-950 font-bold"
                 : "border-zinc-800 bg-zinc-900/60 text-zinc-400 hover:text-white hover:border-zinc-700"
             }`}
           >
-            {tab.replace("_", " ")}
+            {tab.label}
           </button>
         ))}
       </div>
@@ -335,21 +332,29 @@ export default function AdminOrdersPage() {
                           className={`inline-block px-2.5 py-1 rounded-full text-xs font-bold ${
                             o.status === "PENDING"
                               ? "bg-amber-950/80 text-amber-300 border border-amber-800/60 animate-pulse"
-                              : o.status === "ACCEPTED"
-                              ? "bg-blue-950/80 text-blue-300 border border-blue-800/60"
-                              : o.status === "PREPARING"
-                              ? "bg-orange-950/80 text-orange-300 border border-orange-800/60"
-                              : o.status === "READY"
-                              ? "bg-purple-950/80 text-purple-300 border border-purple-800/60"
                               : o.status === "OUT_FOR_DELIVERY"
                               ? "bg-indigo-950/80 text-indigo-300 border border-indigo-800/60"
                               : o.status === "COMPLETED"
                               ? "bg-emerald-950/80 text-emerald-300 border border-emerald-800/60"
-                              : "bg-zinc-800 text-zinc-400"
+                              : o.status === "CANCELLED"
+                              ? "bg-rose-950/60 text-rose-300 border border-rose-900/40"
+                              : "bg-blue-950/80 text-blue-300 border border-blue-800/60"
                           }`}
                         >
-                          {o.status.replace("_", " ")}
+                          {o.status === "OUT_FOR_DELIVERY"
+                            ? "OUT FOR DELIVERY"
+                            : o.status === "PENDING"
+                            ? "QUEUED"
+                            : o.status.replace("_", " ")}
                         </span>
+                        {o.status === "OUT_FOR_DELIVERY" && (
+                          <div className="text-[10px] text-zinc-400 font-mono mt-1">
+                            Dispatched:{" "}
+                            {o.delivery?.picked_up_at
+                              ? new Date(o.delivery.picked_up_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+                              : new Date(o.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                          </div>
+                        )}
                       </td>
 
                       {/* Payment */}
@@ -392,115 +397,119 @@ export default function AdminOrdersPage() {
                         )}
                       </td>
 
-                      {/* Fast Action Buttons */}
+                      {/* Streamlined Fast Action Buttons */}
                       <td className="p-4 text-right">
                         <div className="flex items-center justify-end gap-1.5">
-                          {o.status === "PENDING" && (
+                          {/* 1. If order is in active queue (PENDING, ACCEPTED, PREPARING, READY) */}
+                          {["PENDING", "ACCEPTED", "PREPARING", "READY"].includes(o.status) && (
                             <>
-                              <button
-                                onClick={() => handleStatusChange(o.id, "ACCEPTED")}
-                                disabled={isBusy}
-                                className="px-2.5 py-1 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white font-bold text-xs"
-                              >
-                                Accept
-                              </button>
-                              <button
-                                onClick={() => setCancelModalOrder(o)}
-                                disabled={isBusy}
-                                className="px-2 py-1 rounded-lg bg-zinc-800 hover:bg-rose-950 text-rose-300 text-xs"
-                              >
-                                Reject
-                              </button>
+                              {o.fulfilment_type === "DELIVERY" ? (
+                                <div className="flex items-center gap-1.5">
+                                  <select
+                                    defaultValue={o.delivery?.rider_id || ""}
+                                    onChange={(e) => {
+                                      if (e.target.value) {
+                                        handleAssignRider(o.id, e.target.value);
+                                      }
+                                    }}
+                                    className="text-xs py-1 px-2 rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-300 max-w-[125px] truncate"
+                                    title="Assign campus runner"
+                                  >
+                                    <option value="">Auto Runner</option>
+                                    {riders.map((r) => (
+                                      <option key={r.id} value={r.id}>
+                                        {r.full_name}
+                                      </option>
+                                    ))}
+                                  </select>
+
+                                  <button
+                                    onClick={() =>
+                                      handleStatusChange(
+                                        o.id,
+                                        "OUT_FOR_DELIVERY",
+                                        "Dispatched for campus delivery"
+                                      )
+                                    }
+                                    disabled={isBusy}
+                                    className="px-3 py-1.5 rounded-lg bg-crimson-600 hover:bg-crimson-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-crimson-950 transition active:scale-95 whitespace-nowrap"
+                                  >
+                                    <Bike size={14} /> 🚀 Dispatch Delivery
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  onClick={() =>
+                                    handleStatusChange(
+                                      o.id,
+                                      "COMPLETED",
+                                      "Handed over to customer"
+                                    )
+                                  }
+                                  disabled={isBusy}
+                                  className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-emerald-950 transition"
+                                >
+                                  <PackageCheck size={14} /> Hand Over / Ready
+                                </button>
+                              )}
                             </>
                           )}
 
-                          {o.status === "ACCEPTED" && (
-                            <button
-                              onClick={() => handleStatusChange(o.id, "PREPARING")}
-                              disabled={isBusy}
-                              className="px-2.5 py-1 rounded-lg bg-orange-700 hover:bg-orange-600 text-white font-bold text-xs flex items-center gap-1"
-                            >
-                              <ChefHat size={13} /> Start Prep
-                            </button>
-                          )}
-
-                          {o.status === "PREPARING" && (
-                            <button
-                              onClick={() => handleStatusChange(o.id, "READY")}
-                              disabled={isBusy}
-                              className="px-2.5 py-1 rounded-lg bg-purple-700 hover:bg-purple-600 text-white font-bold text-xs flex items-center gap-1"
-                            >
-                              <PackageCheck size={13} /> Mark Ready
-                            </button>
-                          )}
-
-                          {o.status === "READY" && o.fulfilment_type === "DELIVERY" && (
-                            <div className="flex items-center gap-1">
-                              <select
-                                defaultValue=""
-                                onChange={(e) => {
-                                  if (e.target.value) {
-                                    handleAssignRider(o.id, e.target.value);
-                                    handleStatusChange(o.id, "OUT_FOR_DELIVERY");
-                                  }
-                                }}
-                                className="text-xs py-1 px-2 rounded-lg bg-zinc-800 border-zinc-700 text-zinc-300"
-                              >
-                                <option value="" disabled>Assign Rider</option>
-                                {riders.map((r) => (
-                                  <option key={r.id} value={r.id}>
-                                    {r.full_name}
-                                  </option>
-                                ))}
-                              </select>
-                              <button
-                                onClick={() => handleStatusChange(o.id, "OUT_FOR_DELIVERY")}
-                                disabled={isBusy}
-                                className="px-2.5 py-1 rounded-lg bg-indigo-700 hover:bg-indigo-600 text-white font-bold text-xs flex items-center gap-1"
-                              >
-                                <Bike size={13} /> Dispatch
-                              </button>
-                            </div>
-                          )}
-
-                          {o.status === "READY" && o.fulfilment_type === "PICKUP" && (
-                            <button
-                              onClick={() => handleStatusChange(o.id, "COMPLETED")}
-                              disabled={isBusy}
-                              className="px-2.5 py-1 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white font-bold text-xs flex items-center gap-1"
-                            >
-                              <CheckCircle2 size={13} /> Customer Collected
-                            </button>
-                          )}
-
+                          {/* 2. If Out for Delivery */}
                           {o.status === "OUT_FOR_DELIVERY" && (
-                            <button
-                              onClick={() => handleStatusChange(o.id, "COMPLETED")}
-                              disabled={isBusy}
-                              className="px-2.5 py-1 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white font-bold text-xs flex items-center gap-1"
-                            >
-                              <CheckCircle2 size={13} /> Delivered
-                            </button>
+                            <>
+                              {payment?.method === "CASH" && o.payment_status !== "PAID" ? (
+                                <button
+                                  onClick={() => handleConfirmCash(payment.id, o.id)}
+                                  disabled={isBusy}
+                                  className="px-2.5 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs flex items-center gap-1 shadow transition"
+                                  title="Confirm cash received and mark completed"
+                                >
+                                  <CheckCircle2 size={13} /> 💵 Cash Received & Done
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() =>
+                                    handleStatusChange(
+                                      o.id,
+                                      "COMPLETED",
+                                      "Delivered to customer"
+                                    )
+                                  }
+                                  disabled={isBusy}
+                                  className="px-2.5 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white font-bold text-xs flex items-center gap-1 shadow transition"
+                                >
+                                  <CheckCircle2 size={13} /> Complete Delivery
+                                </button>
+                              )}
+                            </>
                           )}
 
-                          {/* Print Delivery Slip Link */}
+                          {/* 3. If Completed */}
+                          {o.status === "COMPLETED" && (
+                            <span className="text-xs text-emerald-400 font-bold flex items-center gap-1">
+                              <CheckCircle2 size={13} /> Fulfilled
+                            </span>
+                          )}
+
+                          {/* 4. Print Slip Link */}
                           <Link
                             href={`/admin/orders/${o.id}/print`}
                             target="_blank"
-                            className="p-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white"
+                            className="p-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white transition"
                             title="Print Delivery Slip / PDF"
                           >
                             <Printer size={13} />
                           </Link>
 
-                          {/* Cancellation Button for active orders */}
+                          {/* 5. Cancellation Button for active orders */}
                           {!["COMPLETED", "CANCELLED", "REJECTED"].includes(o.status) && (
                             <button
                               onClick={() => setCancelModalOrder(o)}
-                              className="p-1 rounded text-zinc-500 hover:text-rose-400"
+                              className="p-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-500 hover:text-rose-400 transition"
                               title="Cancel order"
                             >
-                              <XCircle size={15} />
+                              <XCircle size={14} />
                             </button>
                           )}
                         </div>

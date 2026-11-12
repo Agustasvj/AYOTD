@@ -40,22 +40,41 @@ function CheckoutContent() {
       .catch(() => {});
   }, []);
 
-  // Parse items from query param
+  // Restore items from localStorage if direct URL access without query param
+  const [cachedCart, setCachedCart] = useState<{ item: MenuItem; quantity: number }[]>([]);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("ayotd_cart");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setCachedCart(parsed);
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  // Parse items from query param or fallback to persisted cart
   const items = useMemo(() => {
     const raw = params.get("items") || "";
-    if (!raw) return [];
-    return raw
-      .split(",")
-      .filter(Boolean)
-      .map((part) => {
-        const [id, qty] = part.split(":");
-        const item = menu.find((x) => x.id === id);
-        return item
-          ? { item, quantity: Math.max(1, Number(qty) || 1) }
-          : null;
-      })
-      .filter((x): x is { item: MenuItem; quantity: number } => Boolean(x));
-  }, [params, menu]);
+    if (raw) {
+      return raw
+        .split(",")
+        .filter(Boolean)
+        .map((part) => {
+          const [id, qty] = part.split(":");
+          const item = menu.find((x) => x.id === id);
+          return item
+            ? { item, quantity: Math.max(1, Number(qty) || 1) }
+            : null;
+        })
+        .filter((x): x is { item: MenuItem; quantity: number } => Boolean(x));
+    }
+    return cachedCart;
+  }, [params, menu, cachedCart]);
 
   const subtotal = items.reduce((s, x) => s + x.item.price * x.quantity, 0);
 
@@ -131,6 +150,13 @@ function CheckoutContent() {
 
       const orderNumber = data.orderNumber;
       const orderId = data.orderId;
+
+      // Clear persisted cart once order is confirmed
+      try {
+        localStorage.removeItem("ayotd_cart");
+      } catch {
+        // ignore
+      }
 
       // 2. If M-Pesa is selected, initiate Daraja STK Push
       if (form.paymentMethod === "MPESA") {
@@ -227,45 +253,50 @@ function CheckoutContent() {
                 </div>
 
                 <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="block text-xs font-semibold text-zinc-300 uppercase tracking-wider">
-                      Kenyan Phone Number *
-                    </label>
-                    {phoneValidation && (
-                      <span
-                        className={`text-[11px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 ${
-                          phoneValidation.isValid
-                            ? "bg-emerald-950/80 text-emerald-400 border border-emerald-800/60"
-                            : "bg-rose-950/80 text-rose-300 border border-rose-900/60"
-                        }`}
-                      >
-                        {phoneValidation.isValid ? (
-                          <>
-                            <Check size={11} /> {phoneValidation.carrier} ({phoneValidation.formatted})
-                          </>
-                        ) : (
-                          phoneValidation.error || "Invalid number"
-                        )}
-                      </span>
-                    )}
-                  </div>
+                  <label className="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-2">
+                    Kenyan Phone Number *
+                  </label>
                   <input
                     required
                     type="tel"
+                    inputMode="numeric"
+                    maxLength={10}
                     placeholder="0712345678 or 0112345678"
                     value={form.phone}
-                    onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                    onChange={(e) => {
+                      let digits = e.target.value.replace(/\D/g, "");
+                      if (digits.startsWith("254")) {
+                        digits = "0" + digits.slice(3);
+                      }
+                      setForm({ ...form, phone: digits.slice(0, 10) });
+                    }}
                     className={`text-sm ${
-                      phoneValidation
-                        ? phoneValidation.isValid
+                      form.phone.length === 10
+                        ? phoneValidation?.isValid
                           ? "border-emerald-600/80 focus:border-emerald-500"
                           : "border-rose-600/80 focus:border-rose-500"
                         : ""
                     }`}
                   />
-                  <p className="text-[11px] text-zinc-500 mt-1">
-                    Accepts Safaricom & Airtel formats: 07XX, 01XX, or +254.
-                  </p>
+                  <div className="min-h-[18px] mt-1">
+                    {!form.phone ? (
+                      <p className="text-[11px] text-zinc-500">
+                        Enter 10-digit number (e.g. 0712345678 or 0112345678)
+                      </p>
+                    ) : form.phone.length < 10 ? (
+                      <p className="text-[11px] text-amber-400 font-medium">
+                        Number is too short ({form.phone.length}/10 digits)
+                      </p>
+                    ) : phoneValidation?.isValid ? (
+                      <p className="text-[11px] text-emerald-400 font-medium flex items-center gap-1">
+                        <Check size={12} /> {phoneValidation.carrier} ({phoneValidation.formatted})
+                      </p>
+                    ) : (
+                      <p className="text-[11px] text-rose-400 font-medium">
+                        {phoneValidation?.error || "Must start with 07 or 01"}
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

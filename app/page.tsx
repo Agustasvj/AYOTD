@@ -120,7 +120,7 @@ export default function HomePage() {
                 <span>Campus Delicacies • Fast Delivery to Hostels & Labs</span>
               </div>
 
-              <h1 className="font-[Playfair_Display] text-5xl sm:text-6xl lg:text-7xl leading-[1.06] text-white">
+              <h1 className="font-[Playfair_Display] text-4xl sm:text-6xl lg:text-7xl leading-[1.06] text-white">
                 Fresh flavours,
                 <br />
                 <span className="text-red-500 italic">crafted daily</span>
@@ -135,20 +135,20 @@ export default function HomePage() {
               </p>
 
               {/* Action Buttons */}
-              <div className="flex flex-wrap items-center gap-4 mt-8">
-                <a href="#menu" className="btn-primary inline-flex items-center gap-2 text-sm px-6 py-3.5">
+              <div className="flex flex-wrap items-center gap-3 sm:gap-4 mt-8">
+                <a href="#menu" className="btn-primary inline-flex items-center gap-2 text-sm px-6 py-3.5 w-full sm:w-auto justify-center">
                   Explore Today&apos;s Menu <ArrowRight size={17} />
                 </a>
                 <Link
                   href="/track"
-                  className="btn-secondary inline-flex items-center gap-2 text-sm px-5 py-3.5 hover:border-zinc-500"
+                  className="btn-secondary inline-flex items-center gap-2 text-sm px-5 py-3.5 hover:border-zinc-500 w-full sm:w-auto justify-center"
                 >
                   <Clock size={16} className="text-red-400" /> Track My Order
                 </Link>
               </div>
 
               {/* Value Badges */}
-              <div className="grid grid-cols-3 gap-4 pt-10 mt-10 border-t border-zinc-800/80 text-xs text-zinc-400">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-8 mt-8 border-t border-zinc-800/80 text-xs text-zinc-400">
                 <div className="flex items-center gap-2">
                   <Zap size={16} className="text-red-400 shrink-0" />
                   <span>15–30 min campus delivery</span>
@@ -252,7 +252,7 @@ export default function HomePage() {
           </div>
 
           {/* Category Filter Tabs */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-4 no-scrollbar mb-8">
+          <div className="-mx-4 px-4 sm:mx-0 sm:px-0 flex items-center gap-2 overflow-x-auto pb-4 no-scrollbar mb-8">
             {categoryNames.map((catName) => (
               <button
                 key={catName}

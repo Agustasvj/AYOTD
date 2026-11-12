@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState, useMemo, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import type { MenuItem } from "@/lib/types";
 import { kes, KES_DELIVERY_FEE } from "@/lib/money";
+import { validateKenyanPhone } from "@/lib/validation";
 import {
   ArrowLeft,
   Plus,
@@ -16,7 +17,8 @@ import {
   Store,
   CreditCard,
   Banknote,
-  Loader2
+  Loader2,
+  Check
 } from "lucide-react";
 
 function ManualOrderContent() {
@@ -85,6 +87,11 @@ function ManualOrderContent() {
   const deliveryFee = fulfilmentType === "DELIVERY" ? KES_DELIVERY_FEE : 0;
   const grandTotal = subtotal + deliveryFee;
 
+  const phoneCheck = useMemo(
+    () => (phone.trim() ? validateKenyanPhone(phone) : null),
+    [phone]
+  );
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
@@ -92,6 +99,16 @@ function ManualOrderContent() {
 
     if (orderLines.length === 0) {
       setStatusMessage({ type: "error", text: "Please add at least one meal to the order." });
+      setBusy(false);
+      return;
+    }
+
+    const validatedPhone = validateKenyanPhone(phone);
+    if (!validatedPhone.isValid) {
+      setStatusMessage({
+        type: "error",
+        text: validatedPhone.error || "Please enter a valid Kenyan phone number (e.g. 0712345678)."
+      });
       setBusy(false);
       return;
     }
@@ -104,7 +121,7 @@ function ManualOrderContent() {
 
     const payload = {
       customerName,
-      phone,
+      phone: validatedPhone.normalized,
       source,
       fulfilmentType,
       address: fulfilmentType === "DELIVERY" ? address : undefined,
@@ -216,16 +233,41 @@ function ManualOrderContent() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-zinc-400 mb-2">
-                Customer Phone *
-              </label>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-xs font-semibold text-zinc-400">
+                  Customer Phone *
+                </label>
+                {phoneCheck && (
+                  <span
+                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 ${
+                      phoneCheck.isValid
+                        ? "bg-emerald-950/80 text-emerald-400 border border-emerald-800/60"
+                        : "bg-rose-950/80 text-rose-300 border border-rose-900/60"
+                    }`}
+                  >
+                    {phoneCheck.isValid ? (
+                      <>
+                        <Check size={10} /> {phoneCheck.carrier} ({phoneCheck.formatted})
+                      </>
+                    ) : (
+                      phoneCheck.error
+                    )}
+                  </span>
+                )}
+              </div>
               <input
                 required
                 type="tel"
                 placeholder="07XXXXXXXX or 01XXXXXXXX"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                className="text-xs sm:text-sm"
+                className={`text-xs sm:text-sm ${
+                  phoneCheck
+                    ? phoneCheck.isValid
+                      ? "border-emerald-600/80"
+                      : "border-rose-600/80"
+                    : ""
+                }`}
               />
             </div>
           </div>

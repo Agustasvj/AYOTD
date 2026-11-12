@@ -6,6 +6,7 @@ import Link from "next/link";
 import { SiteHeader } from "@/components/site-header";
 import type { MenuItem } from "@/lib/types";
 import { kes, KES_DELIVERY_FEE } from "@/lib/money";
+import { validateKenyanPhone } from "@/lib/validation";
 import {
   ArrowLeft,
   Truck,
@@ -16,7 +17,8 @@ import {
   AlertCircle,
   ShieldCheck,
   PhoneCall,
-  Loader2
+  Loader2,
+  Check
 } from "lucide-react";
 
 function CheckoutContent() {
@@ -64,6 +66,11 @@ function CheckoutContent() {
   const deliveryFee = form.fulfilmentType === "DELIVERY" ? KES_DELIVERY_FEE : 0;
   const grandTotal = subtotal + deliveryFee;
 
+  const phoneValidation = useMemo(
+    () => (form.phone.trim() ? validateKenyanPhone(form.phone) : null),
+    [form.phone]
+  );
+
   const [busy, setBusy] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [stkPromptMessage, setStkPromptMessage] = useState("");
@@ -80,6 +87,15 @@ function CheckoutContent() {
       return;
     }
 
+    const phoneCheck = validateKenyanPhone(form.phone);
+    if (!phoneCheck.isValid) {
+      setErrorMessage(
+        phoneCheck.error || "Please enter a valid Kenyan mobile number (e.g. 0712345678 or 0112345678)."
+      );
+      setBusy(false);
+      return;
+    }
+
     if (form.fulfilmentType === "DELIVERY" && !form.address.trim()) {
       setErrorMessage("Please enter your campus delivery location (e.g., Hostel & Room).");
       setBusy(false);
@@ -88,6 +104,7 @@ function CheckoutContent() {
 
     const payload = {
       ...form,
+      phone: phoneCheck.normalized,
       items: items.map((x) => ({
         menuItemId: x.item.id,
         quantity: x.quantity
@@ -209,19 +226,44 @@ function CheckoutContent() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-2">
-                    Kenyan Phone Number *
-                  </label>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-xs font-semibold text-zinc-300 uppercase tracking-wider">
+                      Kenyan Phone Number *
+                    </label>
+                    {phoneValidation && (
+                      <span
+                        className={`text-[11px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 ${
+                          phoneValidation.isValid
+                            ? "bg-emerald-950/80 text-emerald-400 border border-emerald-800/60"
+                            : "bg-rose-950/80 text-rose-300 border border-rose-900/60"
+                        }`}
+                      >
+                        {phoneValidation.isValid ? (
+                          <>
+                            <Check size={11} /> {phoneValidation.carrier} ({phoneValidation.formatted})
+                          </>
+                        ) : (
+                          phoneValidation.error || "Invalid number"
+                        )}
+                      </span>
+                    )}
+                  </div>
                   <input
                     required
                     type="tel"
                     placeholder="0712345678 or 0112345678"
                     value={form.phone}
                     onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                    className="text-sm"
+                    className={`text-sm ${
+                      phoneValidation
+                        ? phoneValidation.isValid
+                          ? "border-emerald-600/80 focus:border-emerald-500"
+                          : "border-rose-600/80 focus:border-rose-500"
+                        : ""
+                    }`}
                   />
                   <p className="text-[11px] text-zinc-500 mt-1">
-                    Used for delivery coordination & M-Pesa prompt.
+                    Accepts Safaricom & Airtel formats: 07XX, 01XX, or +254.
                   </p>
                 </div>
               </div>
@@ -232,7 +274,7 @@ function CheckoutContent() {
               <h2 className="text-lg font-bold text-white mb-4">
                 2. Delivery or Campus Collection
               </h2>
-              <div className="grid grid-cols-2 gap-4 mb-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
                 <button
                   type="button"
                   onClick={() => setForm({ ...form, fulfilmentType: "DELIVERY" })}
@@ -307,7 +349,7 @@ function CheckoutContent() {
               <h2 className="text-lg font-bold text-white mb-4">
                 3. Payment Method
               </h2>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <button
                   type="button"
                   onClick={() => setForm({ ...form, paymentMethod: "MPESA" })}

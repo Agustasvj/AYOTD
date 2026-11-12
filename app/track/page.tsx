@@ -87,20 +87,20 @@ function TrackOrderContent() {
             e.preventDefault();
             fetchStatus();
           }}
-          className="panel p-2 mt-6 flex items-center gap-2 border-zinc-800 shadow-lg"
+          className="panel p-2 mt-6 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 border-zinc-800 shadow-lg"
         >
           <input
             type="text"
             placeholder="e.g. AYOTD-98124011"
             value={orderNumber}
             onChange={(e) => setOrderNumber(e.target.value)}
-            className="bg-transparent border-0 px-4 text-sm font-mono uppercase tracking-wider focus:ring-0"
+            className="bg-transparent border-0 px-4 py-2.5 text-sm font-mono uppercase tracking-wider focus:ring-0 flex-1"
             required
           />
           <button
             type="submit"
             disabled={loading}
-            className="btn-primary text-xs font-bold px-6 py-3 shrink-0 flex items-center gap-2"
+            className="btn-primary text-xs font-bold px-6 py-3 shrink-0 flex items-center justify-center gap-2 w-full sm:w-auto"
           >
             {loading ? (
               <RefreshCw size={14} className="animate-spin" />

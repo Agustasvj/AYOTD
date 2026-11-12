@@ -66,6 +66,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
       </div>
 
+      {/* Mobile Drawer Backdrop Overlay */}
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-40 lg:hidden animate-fade-in"
+          onClick={() => setMobileOpen(false)}
+        />
+      )}
+
       {/* Sidebar for Desktop */}
       <aside
         className={`fixed inset-y-0 left-0 z-50 w-64 bg-zinc-950 border-r border-zinc-800/80 p-5 flex flex-col justify-between transition-transform duration-300 lg:static lg:translate-x-0 ${

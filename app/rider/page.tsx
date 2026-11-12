@@ -8,8 +8,10 @@ import {
   MessageCircle,
   MapPin,
   CreditCard,
+  Banknote,
   CheckCircle2,
   AlertCircle,
+  AlertTriangle,
   RefreshCw,
   Clock,
   ArrowLeft,
@@ -53,6 +55,34 @@ export default function RiderPortalPage() {
         body: JSON.stringify({ status })
       });
       await loadMyDeliveries();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function handleConfirmCashAndComplete(orderId: string) {
+    if (!confirm("Confirm that cash has been received from the customer and mark this delivery completed?")) {
+      return;
+    }
+    setBusy(orderId);
+    try {
+      const res = await fetch("/api/admin/payments/cash/confirm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orderId,
+          markCompleted: true,
+          staffName: "Campus Runner"
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        await loadMyDeliveries();
+      } else {
+        alert(data.error || "Failed to confirm cash.");
+      }
+    } catch {
+      alert("Network error confirming cash payment.");
     } finally {
       setBusy(null);
     }
@@ -186,34 +216,56 @@ export default function RiderPortalPage() {
                   </a>
                 </div>
 
-                {/* Payment status & Doorstep STK trigger */}
-                <div className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-800 flex items-center justify-between text-xs">
-                  <div>
-                    <span className="text-zinc-500 block text-[10px]">AMOUNT DUE</span>
-                    <span className="font-bold text-white text-base">
-                      {kes(o.total_amount)}
-                    </span>
+                {/* Payment Status & Cash Collection Banner */}
+                <div
+                  className={`p-3.5 rounded-xl border text-xs space-y-2 ${
+                    o.payment_status === "PAID"
+                      ? "bg-emerald-950/40 border-emerald-800/60 text-emerald-200"
+                      : "bg-amber-950/40 border-amber-600/70 text-amber-200"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-[10px] uppercase font-bold tracking-wider block opacity-75">
+                        {o.payment_status === "PAID" ? "PAYMENT STATUS" : "COLLECT AT DOOR"}
+                      </span>
+                      <span className="text-base font-extrabold text-white block">
+                        {kes(o.total_amount)}
+                      </span>
+                    </div>
+
+                    {o.payment_status === "PAID" ? (
+                      <span className="text-emerald-400 font-extrabold text-xs bg-emerald-900/60 border border-emerald-700/60 px-2.5 py-1 rounded-full flex items-center gap-1">
+                        <CheckCircle2 size={12} /> PAID (M-PESA)
+                      </span>
+                    ) : (
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-amber-300 font-extrabold text-xs bg-amber-900/60 border border-amber-600 px-2.5 py-1 rounded-full flex items-center gap-1">
+                          <Banknote size={13} /> CASH ON DELIVERY
+                        </span>
+                        <button
+                          onClick={() =>
+                            promptSTK(o.id, o.customer?.phone, o.total_amount)
+                          }
+                          disabled={busy === o.id}
+                          className="btn-secondary text-[10px] py-1 px-2 text-emerald-400 border-emerald-800 hover:bg-emerald-950 flex items-center gap-1"
+                          title="If customer prefers M-Pesa"
+                        >
+                          <CreditCard size={11} /> STK
+                        </button>
+                      </div>
+                    )}
                   </div>
 
-                  {o.payment_status === "PAID" ? (
-                    <span className="text-emerald-400 font-bold text-xs bg-emerald-950/60 border border-emerald-800/60 px-2.5 py-1 rounded-full">
-                      ✓ PAID
-                    </span>
-                  ) : (
-                    <button
-                      onClick={() =>
-                        promptSTK(o.id, o.customer?.phone, o.total_amount)
-                      }
-                      disabled={busy === o.id}
-                      className="btn-secondary text-[11px] py-1.5 px-3 text-emerald-400 border-emerald-800 flex items-center gap-1"
-                    >
-                      <CreditCard size={12} /> Prompt STK
-                    </button>
-                  )}
+                  <p className="text-[11px] opacity-80 leading-snug">
+                    {o.payment_status === "PAID"
+                      ? "✓ Order is fully pre-paid online. Do NOT ask customer for money."
+                      : "⚠️ Collect exact cash from student before meal handover."}
+                  </p>
                 </div>
 
                 {/* Print Docket Link */}
-                <div className="pt-1">
+                <div className="pt-0.5">
                   <Link
                     href={`/admin/orders/${o.id}/print`}
                     target="_blank"
@@ -223,23 +275,47 @@ export default function RiderPortalPage() {
                   </Link>
                 </div>
 
-                {/* Action button */}
+                {/* Runner Lifecycle Action Buttons */}
                 {!isOut ? (
                   <button
                     onClick={() => updateStatus(o.id, "OUT_FOR_DELIVERY")}
                     disabled={busy === o.id}
-                    className="btn-primary w-full bg-indigo-700 hover:bg-indigo-600 text-xs py-3 flex items-center justify-center gap-2 font-bold"
+                    className="btn-primary w-full bg-indigo-700 hover:bg-indigo-600 active:scale-95 text-xs py-3 flex items-center justify-center gap-2 font-bold shadow-lg shadow-indigo-950/60 transition"
                   >
-                    <Bike size={15} /> Start Moving to Hostel
+                    <Bike size={16} /> Start Moving to Hostel
                   </button>
                 ) : (
-                  <button
-                    onClick={() => updateStatus(o.id, "COMPLETED")}
-                    disabled={busy === o.id}
-                    className="btn-primary w-full bg-emerald-700 hover:bg-emerald-600 text-xs py-3 flex items-center justify-center gap-2 font-bold"
-                  >
-                    <CheckCircle2 size={15} /> Confirm Handed Over to Student
-                  </button>
+                  <div className="space-y-2">
+                    {/* Primary Button: If Cash / Unpaid -> One-Tap Cash Confirmation & Completion */}
+                    {o.payment_status !== "PAID" ? (
+                      <button
+                        onClick={() => handleConfirmCashAndComplete(o.id)}
+                        disabled={busy === o.id}
+                        className="btn-primary w-full bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-xs py-3 flex items-center justify-center gap-2 font-black shadow-lg shadow-emerald-950/70 transition"
+                      >
+                        <Banknote size={16} /> Received {kes(o.total_amount)} Cash & Complete
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => updateStatus(o.id, "COMPLETED")}
+                        disabled={busy === o.id}
+                        className="btn-primary w-full bg-emerald-700 hover:bg-emerald-600 active:scale-95 text-xs py-3 flex items-center justify-center gap-2 font-bold shadow-lg shadow-emerald-950/60 transition"
+                      >
+                        <CheckCircle2 size={16} /> Confirm Handed Over to Student
+                      </button>
+                    )}
+
+                    {/* Secondary button if unpaid but customer paid via alternative M-Pesa / manual agreement */}
+                    {o.payment_status !== "PAID" && (
+                      <button
+                        onClick={() => updateStatus(o.id, "COMPLETED")}
+                        disabled={busy === o.id}
+                        className="w-full py-1.5 text-center text-[11px] text-zinc-400 hover:text-zinc-200 underline"
+                      >
+                        Mark Handed Over (Leave Payment Pending)
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
             );

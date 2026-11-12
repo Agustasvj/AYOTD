@@ -11,6 +11,7 @@ import {
   AlertTriangle,
   RefreshCw,
   CreditCard,
+  Banknote,
   UserCheck,
   MessageCircle,
   Clock,
@@ -95,6 +96,32 @@ export default function DeliveriesPage() {
       });
       const data = await res.json();
       alert(data.message || (data.success ? "STK Push sent!" : data.error));
+    } finally {
+      setActionBusy(null);
+    }
+  }
+
+  async function handleConfirmCashAndComplete(orderId: string) {
+    if (!confirm("Confirm that cash has been received from the customer and mark this order completed?")) {
+      return;
+    }
+    setActionBusy(orderId);
+    try {
+      const res = await fetch("/api/admin/payments/cash/confirm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orderId,
+          markCompleted: true,
+          staffName: "Dispatch Admin"
+        })
+      });
+      if (res.ok) {
+        await loadData();
+      } else {
+        const data = await res.json();
+        alert(data.error || "Failed to confirm cash.");
+      }
     } finally {
       setActionBusy(null);
     }
@@ -294,15 +321,26 @@ export default function DeliveriesPage() {
                       <Printer size={13} /> Print Slip
                     </Link>
 
+                    {o.payment_status !== "PAID" && !isDelivered && (
+                      <button
+                        onClick={() => handleConfirmCashAndComplete(o.id)}
+                        disabled={isBusy}
+                        className="btn-primary flex-1 bg-emerald-600 hover:bg-emerald-500 text-xs py-2 px-3 flex items-center justify-center gap-1.5 font-bold shadow-md shadow-emerald-950/60"
+                        title="Collect Cash & Complete Order"
+                      >
+                        <Banknote size={14} /> Cash Received & Done
+                      </button>
+                    )}
+
                     {o.payment_status !== "PAID" && o.customer?.phone && (
                       <button
                         onClick={() =>
                           handleDoorstepSTK(o.id, o.customer.phone, o.total_amount)
                         }
                         disabled={isBusy}
-                        className="btn-secondary flex-1 text-xs py-2 flex items-center justify-center gap-1.5 text-emerald-400 border-emerald-900/60 hover:bg-emerald-950/40"
+                        className="btn-secondary text-xs py-2 px-3 flex items-center justify-center gap-1.5 text-emerald-400 border-emerald-900/60 hover:bg-emerald-950/40"
                       >
-                        <CreditCard size={13} /> STK Push at Door
+                        <CreditCard size={13} /> Prompt STK
                       </button>
                     )}
 

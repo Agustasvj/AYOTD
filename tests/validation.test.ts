@@ -7,7 +7,8 @@ import {
   updateOrderStatusSchema,
   assignRiderSchema,
   menuItemSchema,
-  categorySchema
+  categorySchema,
+  validateKenyanPhone
 } from "../lib/validation";
 
 describe("Input Validation & Zod Schema Tests", () => {
@@ -124,6 +125,31 @@ describe("Input Validation & Zod Schema Tests", () => {
       assignRiderSchema.safeParse({ riderId: "123e4567-e89b-12d3-a456-426614174000" }).success,
       true
     );
+  });
+
+  test("validates Kenyan phone numbers with validateKenyanPhone helper", () => {
+    // Valid Safaricom numbers
+    const safaricom = validateKenyanPhone("0712 345 678");
+    assert.equal(safaricom.isValid, true);
+    assert.equal(safaricom.normalized, "254712345678");
+    assert.equal(safaricom.carrier, "Safaricom");
+
+    // Valid Airtel numbers
+    const airtel = validateKenyanPhone("+254 733 111 222");
+    assert.equal(airtel.isValid, true);
+    assert.equal(airtel.normalized, "254733111222");
+    assert.equal(airtel.carrier, "Airtel");
+
+    // Valid 01 Safaricom prefix
+    const safaricomNew = validateKenyanPhone("0112345678");
+    assert.equal(safaricomNew.isValid, true);
+    assert.equal(safaricomNew.normalized, "254112345678");
+
+    // Invalid numbers
+    assert.equal(validateKenyanPhone("07123").isValid, false);
+    assert.equal(validateKenyanPhone("0201234567").isValid, false);
+    assert.equal(validateKenyanPhone("not-a-number").isValid, false);
+    assert.equal(validateKenyanPhone("").isValid, false);
   });
 });
 

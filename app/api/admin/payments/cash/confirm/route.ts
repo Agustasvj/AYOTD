@@ -3,9 +3,10 @@ import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { z } from "zod";
 
 const confirmCashSchema = z.object({
-  paymentId: z.string().uuid("Invalid payment ID"),
-  orderId: z.string().uuid("Invalid order ID"),
-  staffName: z.string().optional()
+  orderId: z.string().min(1, "Order ID is required"),
+  paymentId: z.string().optional(),
+  staffName: z.string().optional(),
+  markCompleted: z.boolean().optional().default(false)
 });
 
 export async function POST(req: Request) {
@@ -19,52 +20,142 @@ export async function POST(req: Request) {
     );
   }
 
-  const { paymentId, orderId, staffName } = parsed.data;
+  const { orderId, paymentId, staffName, markCompleted } = parsed.data;
   const db = getSupabaseAdmin();
 
   if (!db) {
     return NextResponse.json({
       success: true,
-      message: "Cash payment confirmed (demo mode)"
+      message: markCompleted
+        ? "Cash confirmed and order completed (demo mode)."
+        : "Cash payment confirmed (demo mode)."
     });
   }
 
   try {
     const now = new Date().toISOString();
+    const cashierOrRunner = staffName || "Campus Runner";
 
-    // 1. Update payment record
-    const { error: payErr } = await db
-      .from("payments")
-      .update({
-        status: "PAID",
-        paid_at: now,
-        transaction_reference: `CASH-${Date.now().toString().slice(-6)}`
-      })
-      .eq("id", paymentId);
+    // 1. Fetch current order to get total and status
+    const { data: orderData, error: orderFetchErr } = await db
+      .from("orders")
+      .select("id, status, total_amount, payment_status")
+      .eq("id", orderId)
+      .maybeSingle();
 
-    if (payErr) {
-      throw new Error(payErr.message);
+    if (orderFetchErr) {
+      console.warn("Could not fetch order, proceeding with update:", orderFetchErr.message);
     }
 
-    // 2. Update order payment status
-    await db
-      .from("orders")
-      .update({ payment_status: "PAID" })
-      .eq("id", orderId);
+    const totalAmount = Number(orderData?.total_amount) || 0;
+    const oldStatus = orderData?.status || "OUT_FOR_DELIVERY";
 
-    // 3. Log event
-    await db.from("payment_events").insert({
-      payment_id: paymentId,
-      event_type: "CASH_CONFIRMED_BY_STAFF",
-      payload: {
-        confirmedAt: now,
-        confirmedBy: staffName || "Staff Member"
+    // 2. Find or Create payment record
+    let targetPaymentId = paymentId;
+
+    if (!targetPaymentId) {
+      const { data: existingPayment } = await db
+        .from("payments")
+        .select("id")
+        .eq("order_id", orderId)
+        .maybeSingle();
+
+      if (existingPayment?.id) {
+        targetPaymentId = existingPayment.id;
+      }
+    }
+
+    if (targetPaymentId) {
+      await db
+        .from("payments")
+        .update({
+          method: "CASH",
+          status: "PAID",
+          paid_at: now,
+          transaction_reference: `CASH-${Date.now().toString().slice(-6)}`
+        })
+        .eq("id", targetPaymentId);
+    } else {
+      // Create new payment record
+      const { data: newPay } = await db
+        .from("payments")
+        .insert({
+          order_id: orderId,
+          method: "CASH",
+          amount: totalAmount > 0 ? totalAmount : 100,
+          status: "PAID",
+          paid_at: now,
+          transaction_reference: `CASH-${Date.now().toString().slice(-6)}`
+        })
+        .select("id")
+        .maybeSingle();
+
+      if (newPay?.id) {
+        targetPaymentId = newPay.id;
+      }
+    }
+
+    // 3. Update order record (payment status, and optionally order completion)
+    const orderUpdates: Record<string, any> = {
+      payment_status: "PAID",
+      updated_at: now
+    };
+
+    if (markCompleted) {
+      orderUpdates.status = "COMPLETED";
+      orderUpdates.completed_at = now;
+    }
+
+    await db.from("orders").update(orderUpdates).eq("id", orderId);
+
+    // 4. If markCompleted, also update deliveries table
+    if (markCompleted) {
+      await db
+        .from("deliveries")
+        .update({
+          status: "DELIVERED",
+          delivered_at: now
+        })
+        .eq("order_id", orderId);
+
+      // Log status history transition
+      await db.from("order_status_history").insert({
+        order_id: orderId,
+        old_status: oldStatus,
+        new_status: "COMPLETED",
+        note: `Order completed & cash collected by ${cashierOrRunner}`
+      });
+    }
+
+    // 5. Log payment event
+    if (targetPaymentId) {
+      await db.from("payment_events").insert({
+        payment_id: targetPaymentId,
+        event_type: "CASH_CONFIRMED_AT_DELIVERY",
+        payload: {
+          confirmedAt: now,
+          confirmedBy: cashierOrRunner,
+          orderMarkedCompleted: Boolean(markCompleted)
+        }
+      });
+    }
+
+    // 6. Activity log
+    await db.from("activity_logs").insert({
+      action: markCompleted ? "DELIVERY_COMPLETED_CASH" : "CASH_CONFIRMED",
+      entity_type: "ORDER",
+      entity_id: orderId,
+      metadata: {
+        confirmedBy: cashierOrRunner,
+        amount: totalAmount
       }
     });
 
     return NextResponse.json({
       success: true,
-      message: "Cash payment received and reconciled successfully."
+      message: markCompleted
+        ? "Cash payment confirmed and delivery completed successfully!"
+        : "Cash payment received and reconciled successfully."
     });
   } catch (err) {
     return NextResponse.json(
@@ -73,4 +164,3 @@ export async function POST(req: Request) {
     );
   }
 }
-

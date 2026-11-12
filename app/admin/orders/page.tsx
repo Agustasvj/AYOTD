@@ -263,7 +263,7 @@ export default function AdminOrdersPage() {
                   <th className="p-4 font-semibold">Items</th>
                   <th className="p-4 font-semibold">Status</th>
                   <th className="p-4 font-semibold">Payment</th>
-                  <th className="p-4 font-semibold text-right">Quick Actions</th>
+                  <th className="p-4 font-semibold text-right min-w-[280px]">Quick Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-800/60">
@@ -400,30 +400,40 @@ export default function AdminOrdersPage() {
                       </td>
 
                       {/* Streamlined Fast Action Buttons */}
-                      <td className="p-4 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
+                      <td className="p-4 text-right whitespace-nowrap min-w-[280px]">
+                        <div className="flex items-center justify-end gap-2 shrink-0">
                           {/* 1. If order is in active queue (PENDING, ACCEPTED, PREPARING, READY) */}
                           {["PENDING", "ACCEPTED", "PREPARING", "READY"].includes(o.status) && (
                             <>
                               {o.fulfilment_type === "DELIVERY" ? (
-                                <div className="flex items-center gap-1.5">
-                                  <select
-                                    defaultValue={o.delivery?.rider_id || ""}
-                                    onChange={(e) => {
-                                      if (e.target.value) {
-                                        handleAssignRider(o.id, e.target.value);
-                                      }
-                                    }}
-                                    className="text-xs py-1 px-2 rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-300 max-w-[125px] truncate"
-                                    title="Assign campus runner"
-                                  >
-                                    <option value="">Auto Runner</option>
-                                    {riders.map((r) => (
-                                      <option key={r.id} value={r.id}>
-                                        {r.full_name}
+                                <div className="flex items-center gap-2 shrink-0">
+                                  {/* Runner selection dropdown with fixed width and custom chevron */}
+                                  <div className="relative inline-flex items-center shrink-0">
+                                    <select
+                                      defaultValue={o.delivery?.rider_id || ""}
+                                      onChange={(e) => {
+                                        if (e.target.value) {
+                                          handleAssignRider(o.id, e.target.value);
+                                        }
+                                      }}
+                                      className="w-36 min-w-[130px] shrink-0 text-xs py-1.5 pl-2.5 pr-6 rounded-lg bg-zinc-900 border border-zinc-700 text-zinc-200 outline-none hover:border-zinc-500 focus:border-red-500 transition cursor-pointer appearance-none shadow-sm"
+                                      title="Assign campus runner"
+                                    >
+                                      <option value="" className="bg-zinc-900 text-zinc-400">
+                                        Auto Runner
                                       </option>
-                                    ))}
-                                  </select>
+                                      {riders.map((r) => (
+                                        <option key={r.id} value={r.id} className="bg-zinc-900 text-white">
+                                          {r.full_name}
+                                        </option>
+                                      ))}
+                                    </select>
+                                    <div className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-zinc-400">
+                                      <svg className="w-3 h-3 fill-current" viewBox="0 0 20 20">
+                                        <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
+                                      </svg>
+                                    </div>
+                                  </div>
 
                                   <button
                                     onClick={() =>
@@ -434,7 +444,7 @@ export default function AdminOrdersPage() {
                                       )
                                     }
                                     disabled={isBusy}
-                                    className="px-3 py-1.5 rounded-lg bg-crimson-600 hover:bg-crimson-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-crimson-950 transition active:scale-95 whitespace-nowrap"
+                                    className="px-3.5 py-1.5 rounded-lg bg-crimson-600 hover:bg-crimson-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-crimson-950 transition active:scale-95 whitespace-nowrap shrink-0"
                                   >
                                     <Bike size={14} /> 🚀 Dispatch Delivery
                                   </button>

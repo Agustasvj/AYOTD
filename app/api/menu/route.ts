@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
-import { demoMenu, demoCategories } from "@/lib/demo-menu";
+import { getDemoMenu, getDemoCategories } from "@/lib/demo-menu";
 import { getCachedMenu, setCachedMenu, getStaleMenu } from "@/lib/menu-cache";
 import { shouldRevalidate, finishRevalidation } from "@/lib/fast-cache";
 
@@ -8,8 +8,8 @@ async function fetchFreshMenu(includeUnavailable: boolean) {
   const db = getSupabaseAdmin();
   if (!db) {
     return {
-      items: demoMenu,
-      categories: demoCategories,
+      items: getDemoMenu(),
+      categories: getDemoCategories(),
       demo: true
     };
   }
@@ -52,8 +52,8 @@ async function fetchFreshMenu(includeUnavailable: boolean) {
   }));
 
   return {
-    items: items.length > 0 ? items : demoMenu,
-    categories: categories.length > 0 ? categories : demoCategories,
+    items: items.length > 0 ? items : getDemoMenu(),
+    categories: categories.length > 0 ? categories : getDemoCategories(),
     demo: items.length === 0
   };
 }

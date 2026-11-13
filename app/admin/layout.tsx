@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import { StaffPasscodeGate } from "@/components/staff-passcode-gate";
 import {
   LayoutDashboard,
   ClipboardList,
@@ -18,6 +19,7 @@ import {
   X,
   ExternalLink,
   ShieldCheck,
+  Lock,
   Bell
 } from "lucide-react";
 
@@ -37,34 +39,47 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  async function handleLogout() {
+    await fetch("/api/admin/auth/logout", { method: "POST" });
+    window.location.reload();
+  }
+
   return (
-    <div className="min-h-screen bg-black text-zinc-100 flex flex-col lg:flex-row">
-      {/* Mobile Header */}
-      <div className="lg:hidden flex items-center justify-between p-4 border-b border-zinc-800 bg-zinc-950 sticky top-0 z-40">
-        <div className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded-full border border-red-600 bg-red-950 flex items-center justify-center text-red-500 font-bold text-xs">
-            AY
+    <StaffPasscodeGate>
+      <div className="min-h-screen bg-black text-zinc-100 flex flex-col lg:flex-row">
+        {/* Mobile Header */}
+        <div className="lg:hidden flex items-center justify-between p-4 border-b border-zinc-800 bg-zinc-950 sticky top-0 z-40">
+          <div className="flex items-center gap-2">
+            <div className="h-8 w-8 rounded-full border border-red-600 bg-red-950 flex items-center justify-center text-red-500 font-bold text-xs">
+              AY
+            </div>
+            <div>
+              <span className="font-bold text-sm tracking-wider">AYOTD</span>
+              <span className="text-[10px] text-red-400 block font-semibold">OPS CENTER</span>
+            </div>
           </div>
-          <div>
-            <span className="font-bold text-sm tracking-wider">AYOTD</span>
-            <span className="text-[10px] text-red-400 block font-semibold">OPS CENTER</span>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/admin/orders/new"
+              className="btn-primary text-xs px-3 py-1.5 flex items-center gap-1"
+            >
+              <PlusCircle size={14} /> + Order
+            </Link>
+            <button
+              onClick={handleLogout}
+              className="p-2 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-red-400"
+              title="Lock Staff Terminal"
+            >
+              <Lock size={16} />
+            </button>
+            <button
+              onClick={() => setMobileOpen(!mobileOpen)}
+              className="p-2 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300"
+            >
+              {mobileOpen ? <X size={20} /> : <Menu size={20} />}
+            </button>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Link
-            href="/admin/orders/new"
-            className="btn-primary text-xs px-3 py-1.5 flex items-center gap-1"
-          >
-            <PlusCircle size={14} /> + Order
-          </Link>
-          <button
-            onClick={() => setMobileOpen(!mobileOpen)}
-            className="p-2 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300"
-          >
-            {mobileOpen ? <X size={20} /> : <Menu size={20} />}
-          </button>
-        </div>
-      </div>
 
       {/* Mobile Drawer Backdrop Overlay */}
       {mobileOpen && (
@@ -149,7 +164,21 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <ExternalLink size={13} /> View Live Storefront
             </span>
           </Link>
-          <div className="flex items-center gap-1.5 text-[11px] text-zinc-500">
+
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center justify-between text-xs text-zinc-400 hover:text-red-400 hover:bg-red-950/30 px-2.5 py-2 rounded-lg border border-zinc-800 transition cursor-pointer"
+            title="Lock Staff Terminal"
+          >
+            <span className="flex items-center gap-2">
+              <Lock size={13} className="text-red-500" /> Lock Terminal
+            </span>
+            <span className="text-[10px] text-zinc-500 bg-zinc-900 px-1.5 py-0.5 rounded border border-zinc-800">
+              PIN Gate
+            </span>
+          </button>
+
+          <div className="flex items-center gap-1.5 text-[11px] text-zinc-500 pt-1">
             <ShieldCheck size={13} className="text-red-400" />
             <span>Role: SUPER_ADMIN</span>
           </div>
@@ -161,6 +190,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <main className="flex-1 p-4 sm:p-8 max-w-7xl w-full mx-auto">{children}</main>
       </div>
     </div>
+    </StaffPasscodeGate>
   );
 }
 

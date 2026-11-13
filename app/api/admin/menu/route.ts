@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { menuItemSchema, categorySchema } from "@/lib/validation";
 import { invalidateMenuCache } from "@/lib/menu-cache";
+import { deleteDemoMeal, deleteDemoCategory } from "@/lib/demo-menu";
+import { invalidatePrefix } from "@/lib/fast-cache";
 
 export async function POST(req: Request) {
   const body = await req.json().catch(() => null);
@@ -112,20 +114,53 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ error: "Item ID is required for deletion" }, { status: 400 });
   }
 
+  // 1. If it's a demo item ID or offline demo mode
+  if (id.startsWith("meal-") || id.startsWith("cat-") || id.startsWith("item-")) {
+    if (type === "category") {
+      deleteDemoCategory(id);
+    } else {
+      deleteDemoMeal(id);
+    }
+    invalidateMenuCache();
+    invalidatePrefix("menu:");
+    return NextResponse.json({ success: true, id, message: "Item deleted successfully" });
+  }
+
   const db = getSupabaseAdmin();
   if (!db) {
+    if (type === "category") {
+      deleteDemoCategory(id);
+    } else {
+      deleteDemoMeal(id);
+    }
     invalidateMenuCache();
-    return NextResponse.json({ success: true, id, message: "Deleted (demo mode)" });
+    invalidatePrefix("menu:");
+    return NextResponse.json({ success: true, id, message: "Deleted (offline mode)" });
   }
 
   try {
     const table = type === "category" ? "categories" : "menu_items";
-    const { error } = await db.from(table).delete().eq("id", id);
-    if (error) throw new Error(error.message);
+
+    // 2. Attempt hard delete first
+    const { error: deleteError } = await db.from(table).delete().eq("id", id);
+
+    if (deleteError) {
+      // 3. Fallback to soft-delete if foreign key constraint blocks hard delete (e.g. meal has historical order items)
+      console.warn(`Hard delete failed on ${table}:${id} (${deleteError.message}). Performing graceful soft-delete.`);
+      const updateData =
+        type === "category"
+          ? { is_active: false }
+          : { is_active: false, is_available: false };
+
+      const { error: softError } = await db.from(table).update(updateData).eq("id", id);
+      if (softError) throw new Error(softError.message);
+    }
 
     invalidateMenuCache();
-    return NextResponse.json({ success: true, id });
+    invalidatePrefix("menu:");
+    return NextResponse.json({ success: true, id, message: "Item deleted successfully" });
   } catch (err) {
+    console.error("Delete menu error:", err);
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Failed to delete item." },
       { status: 500 }

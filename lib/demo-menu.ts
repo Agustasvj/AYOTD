@@ -110,3 +110,22 @@ export const demoMenu: MenuItem[] = [
     is_available: true
   }
 ];
+
+const deletedDemoMealIds = new Set<string>();
+const deletedDemoCatIds = new Set<string>();
+
+export function deleteDemoMeal(id: string) {
+  deletedDemoMealIds.add(id);
+}
+
+export function deleteDemoCategory(id: string) {
+  deletedDemoCatIds.add(id);
+}
+
+export function getDemoMenu(): MenuItem[] {
+  return demoMenu.filter((m) => !deletedDemoMealIds.has(m.id));
+}
+
+export function getDemoCategories(): Category[] {
+  return demoCategories.filter((c) => !deletedDemoCatIds.has(c.id));
+}

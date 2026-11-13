@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { kes } from "@/lib/money";
+import { StaffPasscodeGate } from "@/components/staff-passcode-gate";
 import {
   Bike,
   Phone,
@@ -104,7 +105,11 @@ export default function RiderPortalPage() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white p-4 max-w-lg mx-auto pb-16">
+    <StaffPasscodeGate
+      portalTitle="AYOTD Campus Runner Portal"
+      portalSubtitle="Campus Runner Access — Dispatch & Live Delivery Screen"
+    >
+      <div className="min-h-screen bg-black text-white p-4 max-w-lg mx-auto pb-16">
       {/* Mobile Rider Top Bar */}
       <div className="flex items-center justify-between py-4 border-b border-zinc-800">
         <div className="flex items-center gap-2">
@@ -329,6 +334,7 @@ export default function RiderPortalPage() {
         </Link>
       </div>
     </div>
+    </StaffPasscodeGate>
   );
 }
 

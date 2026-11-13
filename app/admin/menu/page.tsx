@@ -149,18 +149,18 @@ export default function MenuManagementPage() {
   }
 
   async function handleDeleteMeal(id: string, name: string) {
-    if (!confirm(`Are you sure you want to permanently delete "${name}" from the menu?`)) {
+    if (!confirm(`Are you sure you want to delete "${name}" from the menu?`)) {
       return;
     }
     setBusyId(id);
     try {
-      const res = await fetch(`/api/admin/menu?id=${id}&type=item`, {
+      const res = await fetch(`/api/admin/menu?id=${encodeURIComponent(id)}&type=item`, {
         method: "DELETE"
       });
       if (res.ok) {
         setItems((prev) => prev.filter((x) => x.id !== id));
       } else {
-        const d = await res.json();
+        const d = await res.json().catch(() => ({}));
         alert(d.error || "Failed to delete meal.");
       }
     } catch {
@@ -175,13 +175,13 @@ export default function MenuManagementPage() {
       return;
     }
     try {
-      const res = await fetch(`/api/admin/menu?id=${id}&type=category`, {
+      const res = await fetch(`/api/admin/menu?id=${encodeURIComponent(id)}&type=category`, {
         method: "DELETE"
       });
       if (res.ok) {
         setCategories((prev) => prev.filter((x) => x.id !== id));
       } else {
-        const d = await res.json();
+        const d = await res.json().catch(() => ({}));
         alert(d.error || "Failed to delete category.");
       }
     } catch {

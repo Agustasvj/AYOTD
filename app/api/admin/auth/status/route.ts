@@ -5,3 +5,4 @@ export async function GET(req: Request) {
   const authenticated = isStaffAuthorized(req);
   return NextResponse.json({ authenticated });
 }
+

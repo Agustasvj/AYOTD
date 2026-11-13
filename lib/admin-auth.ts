@@ -46,3 +46,4 @@ export function isStaffAuthorized(request: Request): boolean {
 
   return verifyStaffSessionToken(token);
 }
+

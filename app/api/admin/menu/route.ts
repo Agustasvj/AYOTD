@@ -69,7 +69,7 @@ export async function POST(req: Request) {
 
 export async function PATCH(req: Request) {
   const body = await req.json().catch(() => null);
-  const { id, is_available, price, name, description, is_active } = body || {};
+  const { id, is_available, price, name, description, is_active, category_id, image_url } = body || {};
 
   if (!id) {
     return NextResponse.json({ error: "Item ID is required" }, { status: 400 });
@@ -77,6 +77,8 @@ export async function PATCH(req: Request) {
 
   const db = getSupabaseAdmin();
   if (!db) {
+    invalidateMenuCache();
+    invalidatePrefix("menu:");
     return NextResponse.json({ success: true, message: "Updated in demo mode" });
   }
 
@@ -87,6 +89,8 @@ export async function PATCH(req: Request) {
     if (typeof price === "number") updatePayload.price = price;
     if (typeof name === "string") updatePayload.name = name;
     if (typeof description === "string") updatePayload.description = description;
+    if (typeof category_id === "string") updatePayload.category_id = category_id;
+    if (typeof image_url === "string") updatePayload.image_url = image_url;
 
     const { error } = await db
       .from("menu_items")
@@ -96,6 +100,7 @@ export async function PATCH(req: Request) {
     if (error) throw new Error(error.message);
 
     invalidateMenuCache();
+    invalidatePrefix("menu:");
     return NextResponse.json({ success: true, id });
   } catch (err) {
     return NextResponse.json(

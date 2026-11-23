@@ -90,7 +90,12 @@ export async function POST(request: Request) {
       .single();
 
     if (customerError || !customer) {
-      throw new Error("Could not save customer details.");
+      console.error("[Orders API] Supabase customer upsert error:", customerError);
+      throw new Error(
+        customerError?.message
+          ? `Could not save customer details: ${customerError.message}`
+          : "Could not save customer details."
+      );
     }
 
     const orderNumber = `AYOTD-${Date.now().toString().slice(-8)}`;

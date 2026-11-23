@@ -12,9 +12,11 @@ import {
   Phone,
   User,
   LogOut,
-  Sparkles
+  Sparkles,
+  Settings
 } from "lucide-react";
 import { AuthModal } from "./auth-modal";
+import { EditProfileModal } from "./edit-profile-modal";
 
 interface SiteHeaderProps {
   cartCount?: number;
@@ -24,11 +26,13 @@ interface SiteHeaderProps {
 export function SiteHeader({ cartCount = 0, onOpenCart }: SiteHeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [editProfileOpen, setEditProfileOpen] = useState(false);
   const [authDefaultTab, setAuthDefaultTab] = useState<"login" | "signup" | "guest">("login");
   const [currentUser, setCurrentUser] = useState<{
     id: string;
     name: string;
     phone: string;
+    address?: string;
     isGuest: boolean;
   } | null>(null);
 
@@ -104,14 +108,35 @@ export function SiteHeader({ cartCount = 0, onOpenCart }: SiteHeaderProps) {
             {/* Account / Session Button */}
             {currentUser ? (
               <div className="flex items-center gap-2">
-                <div className="hidden sm:flex flex-col text-right">
-                  <span className="text-xs font-bold text-white truncate max-w-[130px]">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!currentUser.isGuest) {
+                      setEditProfileOpen(true);
+                    }
+                  }}
+                  className={`hidden sm:flex flex-col text-right ${
+                    !currentUser.isGuest ? "hover:opacity-80 transition cursor-pointer" : ""
+                  }`}
+                  title={!currentUser.isGuest ? "Click to edit your profile" : undefined}
+                >
+                  <span className="text-xs font-bold text-white truncate max-w-[130px] flex items-center gap-1 justify-end">
                     {currentUser.isGuest ? `Guest` : currentUser.name}
+                    {!currentUser.isGuest && <Settings size={11} className="text-zinc-400" />}
                   </span>
                   <span className="text-[10px] text-zinc-400">
                     {currentUser.isGuest ? `Session: ${currentUser.id}` : currentUser.phone}
                   </span>
-                </div>
+                </button>
+                {!currentUser.isGuest && (
+                  <button
+                    onClick={() => setEditProfileOpen(true)}
+                    className="p-2 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700 transition"
+                    title="Edit profile & addresses"
+                  >
+                    <Settings size={15} />
+                  </button>
+                )}
                 <button
                   onClick={handleLogout}
                   className="p-2 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-red-400 hover:border-red-900/50 transition"
@@ -195,7 +220,20 @@ export function SiteHeader({ cartCount = 0, onOpenCart }: SiteHeaderProps) {
               {currentUser ? (
                 <div className="flex items-center justify-between">
                   <div>
-                    <div className="text-sm font-bold text-white">{currentUser.name}</div>
+                    <div className="text-sm font-bold text-white flex items-center gap-2">
+                      <span>{currentUser.name}</span>
+                      {!currentUser.isGuest && (
+                        <button
+                          onClick={() => {
+                            setMobileMenuOpen(false);
+                            setEditProfileOpen(true);
+                          }}
+                          className="text-xs text-red-400 hover:underline flex items-center gap-1"
+                        >
+                          <Settings size={11} /> Edit
+                        </button>
+                      )}
+                    </div>
                     <div className="text-xs text-zinc-500">{currentUser.phone || `Guest ${currentUser.id}`}</div>
                   </div>
                   <button
@@ -247,6 +285,18 @@ export function SiteHeader({ cartCount = 0, onOpenCart }: SiteHeaderProps) {
           window.location.reload();
         }}
       />
+
+      {/* Edit Profile Modal */}
+      {currentUser && !currentUser.isGuest && (
+        <EditProfileModal
+          isOpen={editProfileOpen}
+          onClose={() => setEditProfileOpen(false)}
+          currentUser={currentUser}
+          onSuccess={(updated) => {
+            setCurrentUser((prev) => (prev ? { ...prev, ...updated } : null));
+          }}
+        />
+      )}
     </>
   );
 }

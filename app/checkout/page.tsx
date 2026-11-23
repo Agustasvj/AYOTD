@@ -26,9 +26,11 @@ import {
   Trash2,
   User,
   Sparkles,
-  LogOut
+  LogOut,
+  Settings
 } from "lucide-react";
 import { AuthModal } from "@/components/auth-modal";
+import { EditProfileModal } from "@/components/edit-profile-modal";
 
 function CheckoutContent() {
   const router = useRouter();
@@ -111,6 +113,7 @@ function CheckoutContent() {
     isGuest: boolean;
   } | null>(null);
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [editProfileOpen, setEditProfileOpen] = useState(false);
   const [authDefaultTab, setAuthDefaultTab] = useState<"login" | "signup" | "guest">("login");
 
   // Fetch verified customer session from server
@@ -421,13 +424,24 @@ function CheckoutContent() {
 
               <div className="flex items-center gap-2 shrink-0">
                 {currentUser ? (
-                  <button
-                    type="button"
-                    onClick={handleLogout}
-                    className="text-xs text-zinc-400 hover:text-red-400 flex items-center gap-1 transition px-2 py-1"
-                  >
-                    <LogOut size={13} /> Switch Account / Guest
-                  </button>
+                  <div className="flex items-center gap-2">
+                    {!currentUser.isGuest && (
+                      <button
+                        type="button"
+                        onClick={() => setEditProfileOpen(true)}
+                        className="text-xs text-red-400 hover:text-red-300 font-semibold flex items-center gap-1 transition px-2 py-1 bg-red-950/40 border border-red-800/60 rounded-lg"
+                      >
+                        <Settings size={13} /> Edit Profile
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={handleLogout}
+                      className="text-xs text-zinc-400 hover:text-red-400 flex items-center gap-1 transition px-2 py-1"
+                    >
+                      <LogOut size={13} /> Switch Account / Guest
+                    </button>
+                  </div>
                 ) : (
                   <div className="flex items-center gap-2">
                     <button
@@ -857,6 +871,21 @@ function CheckoutContent() {
           applyCustomerSession(user);
         }}
       />
+
+      {/* Edit Profile Modal */}
+      {currentUser && !currentUser.isGuest && (
+        <EditProfileModal
+          isOpen={editProfileOpen}
+          onClose={() => setEditProfileOpen(false)}
+          currentUser={currentUser}
+          onSuccess={(updated) => {
+            applyCustomerSession({
+              ...currentUser,
+              ...updated
+            });
+          }}
+        />
+      )}
     </div>
   );
 }

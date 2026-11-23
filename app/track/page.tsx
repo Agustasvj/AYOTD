@@ -258,7 +258,9 @@ function TrackOrderContent() {
                     <div
                       className={`absolute -left-6 top-0 w-5 h-5 rounded-full flex items-center justify-center transition-all ${
                         isCurrent
-                          ? "bg-red-600 ring-4 ring-red-950 text-white"
+                          ? stage.key === "COMPLETED"
+                            ? "bg-emerald-600 ring-4 ring-emerald-950 text-white"
+                            : "bg-red-600 ring-4 ring-red-950 text-white"
                           : isPast
                           ? "bg-emerald-600 text-white"
                           : "bg-zinc-800 text-zinc-600"
@@ -272,7 +274,9 @@ function TrackOrderContent() {
                       <div className="flex items-center gap-2">
                         <span
                           className={`font-bold text-sm ${
-                            isCurrent
+                            stage.key === "COMPLETED" && (isCurrent || isPast)
+                              ? "text-emerald-400"
+                              : isCurrent
                               ? "text-red-400"
                               : isPast
                               ? "text-zinc-200"
@@ -281,15 +285,12 @@ function TrackOrderContent() {
                         >
                           {stage.label}
                         </span>
-                        {isCurrent && (
-                          <span className="text-[10px] bg-red-950 text-red-300 border border-red-800/50 px-2 py-0.5 rounded-full font-semibold animate-pulse">
-                            Active Stage
-                          </span>
-                        )}
                       </div>
                       <p
                         className={`text-xs mt-0.5 ${
-                          isCurrent
+                          stage.key === "COMPLETED" && (isCurrent || isPast)
+                            ? "text-emerald-300/80"
+                            : isCurrent
                             ? "text-zinc-300"
                             : isPast
                             ? "text-zinc-500"

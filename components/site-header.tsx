@@ -1,8 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { ShoppingBag, UtensilsCrossed, Menu, X, Clock, MapPin, Phone } from "lucide-react";
+import { useState, useEffect } from "react";
+import {
+  ShoppingBag,
+  UtensilsCrossed,
+  Menu,
+  X,
+  Clock,
+  MapPin,
+  Phone,
+  User,
+  LogOut,
+  Sparkles
+} from "lucide-react";
+import { AuthModal } from "./auth-modal";
 
 interface SiteHeaderProps {
   cartCount?: number;
@@ -11,6 +23,34 @@ interface SiteHeaderProps {
 
 export function SiteHeader({ cartCount = 0, onOpenCart }: SiteHeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [authDefaultTab, setAuthDefaultTab] = useState<"login" | "signup" | "guest">("login");
+  const [currentUser, setCurrentUser] = useState<{
+    id: string;
+    name: string;
+    phone: string;
+    isGuest: boolean;
+  } | null>(null);
+
+  useEffect(() => {
+    fetch("/api/auth/me")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.authenticated && d.user) {
+          setCurrentUser(d.user);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  async function handleLogout() {
+    await fetch("/api/auth/me", { method: "POST" });
+    setCurrentUser(null);
+    try {
+      localStorage.removeItem("ayotd_customer_session_user");
+    } catch {}
+    window.location.reload();
+  }
 
   return (
     <>
@@ -61,6 +101,38 @@ export function SiteHeader({ cartCount = 0, onOpenCart }: SiteHeaderProps) {
 
           {/* Cart & Mobile Trigger */}
           <div className="flex items-center gap-3">
+            {/* Account / Session Button */}
+            {currentUser ? (
+              <div className="flex items-center gap-2">
+                <div className="hidden sm:flex flex-col text-right">
+                  <span className="text-xs font-bold text-white truncate max-w-[130px]">
+                    {currentUser.isGuest ? `Guest` : currentUser.name}
+                  </span>
+                  <span className="text-[10px] text-zinc-400">
+                    {currentUser.isGuest ? `Session: ${currentUser.id}` : currentUser.phone}
+                  </span>
+                </div>
+                <button
+                  onClick={handleLogout}
+                  className="p-2 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-red-400 hover:border-red-900/50 transition"
+                  title="Log out of session"
+                >
+                  <LogOut size={16} />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => {
+                  setAuthDefaultTab("login");
+                  setAuthModalOpen(true);
+                }}
+                className="hidden sm:flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900/80 text-zinc-300 hover:text-white hover:border-zinc-700 transition"
+              >
+                <User size={14} className="text-red-400" />
+                <span>Sign In</span>
+              </button>
+            )}
+
             {onOpenCart ? (
               <button
                 onClick={onOpenCart}
@@ -118,9 +190,63 @@ export function SiteHeader({ cartCount = 0, onOpenCart }: SiteHeaderProps) {
             >
               About & Campus Delivery
             </Link>
+
+            <div className="pt-3 border-t border-zinc-800/80">
+              {currentUser ? (
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-sm font-bold text-white">{currentUser.name}</div>
+                    <div className="text-xs text-zinc-500">{currentUser.phone || `Guest ${currentUser.id}`}</div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      handleLogout();
+                    }}
+                    className="text-xs text-red-400 font-semibold"
+                  >
+                    Log Out
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      setAuthDefaultTab("login");
+                      setAuthModalOpen(true);
+                    }}
+                    className="btn-secondary text-xs py-2 text-center"
+                  >
+                    Sign In
+                  </button>
+                  <button
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      setAuthDefaultTab("signup");
+                      setAuthModalOpen(true);
+                    }}
+                    className="btn-primary text-xs py-2 text-center"
+                  >
+                    Create Account
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </header>
+
+      {/* Auth Modal */}
+      <AuthModal
+        isOpen={authModalOpen}
+        onClose={() => setAuthModalOpen(false)}
+        defaultTab={authDefaultTab}
+        onSuccess={(user) => {
+          setCurrentUser(user);
+          window.location.reload();
+        }}
+      />
     </>
   );
 }

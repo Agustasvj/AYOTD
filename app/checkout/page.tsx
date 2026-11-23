@@ -23,8 +23,12 @@ import {
   UserCheck,
   PlusCircle,
   MapPin,
-  Trash2
+  Trash2,
+  User,
+  Sparkles,
+  LogOut
 } from "lucide-react";
+import { AuthModal } from "@/components/auth-modal";
 
 function CheckoutContent() {
   const router = useRouter();
@@ -97,31 +101,84 @@ function CheckoutContent() {
   const [showAddressManager, setShowAddressManager] = useState(false);
   const [newAddressInput, setNewAddressInput] = useState("");
 
-  // Load cached profile on initial mount
+  // Customer Auth Session state
+  const [currentUser, setCurrentUser] = useState<{
+    id: string;
+    name: string;
+    phone: string;
+    address?: string;
+    addresses?: string[];
+    isGuest: boolean;
+  } | null>(null);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [authDefaultTab, setAuthDefaultTab] = useState<"login" | "signup" | "guest">("login");
+
+  // Fetch verified customer session from server
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem("ayotd_customer_profile");
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (parsed.phone || parsed.customerName) {
-          setHasCachedProfile(true);
-          setForm((prev) => ({
-            ...prev,
-            customerName: parsed.customerName || prev.customerName,
-            phone: parsed.phone || prev.phone,
-            address: parsed.address || (parsed.addresses && parsed.addresses[0]) || prev.address
-          }));
+    fetch("/api/auth/me")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.authenticated && d.user) {
+          applyCustomerSession(d.user);
+        } else {
+          // Fallback to local storage cache if user previously saved
+          try {
+            const stored = localStorage.getItem("ayotd_customer_profile");
+            if (stored) {
+              const parsed = JSON.parse(stored);
+              if (parsed.phone || parsed.customerName) {
+                setHasCachedProfile(true);
+                setForm((prev) => ({
+                  ...prev,
+                  customerName: parsed.customerName || prev.customerName,
+                  phone: parsed.phone || prev.phone,
+                  address: parsed.address || (parsed.addresses && parsed.addresses[0]) || prev.address
+                }));
+              }
+              if (Array.isArray(parsed.addresses)) {
+                setSavedAddresses(parsed.addresses);
+              }
+            }
+          } catch {}
         }
-        if (Array.isArray(parsed.addresses)) {
-          setSavedAddresses(parsed.addresses);
-        } else if (parsed.address) {
-          setSavedAddresses([parsed.address]);
-        }
-      }
-    } catch {
-      // ignore
-    }
+      })
+      .catch(() => {});
   }, []);
+
+  function applyCustomerSession(user: {
+    id: string;
+    name: string;
+    phone: string;
+    address?: string;
+    addresses?: string[];
+    isGuest: boolean;
+  }) {
+    setCurrentUser(user);
+    setHasCachedProfile(true);
+    const primaryAddr = user.address || (user.addresses && user.addresses[0]) || "";
+    setForm((prev) => ({
+      ...prev,
+      customerName: user.isGuest ? prev.customerName : (user.name || prev.customerName),
+      phone: user.phone || prev.phone,
+      address: primaryAddr || prev.address
+    }));
+    if (user.addresses && user.addresses.length > 0) {
+      setSavedAddresses(user.addresses);
+    } else if (primaryAddr) {
+      setSavedAddresses([primaryAddr]);
+    }
+  }
+
+  async function handleLogout() {
+    await fetch("/api/auth/me", { method: "POST" });
+    setCurrentUser(null);
+    setHasCachedProfile(false);
+    setForm((prev) => ({ ...prev, customerName: "", phone: "", address: "" }));
+    setSavedAddresses([]);
+    try {
+      localStorage.removeItem("ayotd_customer_profile");
+    } catch {}
+  }
 
   // Save profile and address list helper
   function saveProfile(name: string, phone: string, address: string, allAddresses: string[]) {
@@ -204,6 +261,8 @@ function CheckoutContent() {
     const payload = {
       ...form,
       phone: phoneCheck.normalized,
+      guestId: currentUser?.isGuest ? currentUser.id : undefined,
+      customerId: currentUser && !currentUser.isGuest ? currentUser.id : undefined,
       items: items.map((x) => ({
         menuItemId: x.item.id,
         quantity: x.quantity
@@ -308,6 +367,94 @@ function CheckoutContent() {
         <div className="grid lg:grid-cols-[1.2fr_0.8fr] gap-8 mt-8">
           {/* Form Column */}
           <form onSubmit={handleSubmit} className="panel p-6 sm:p-8 space-y-6">
+            {/* Session / Account Status Card */}
+            <div className="p-4 rounded-xl bg-zinc-900/90 border border-zinc-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              {currentUser && !currentUser.isGuest ? (
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full bg-emerald-950/80 border border-emerald-800/60 flex items-center justify-center text-emerald-400 shrink-0">
+                    <UserCheck size={18} />
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold text-white flex items-center gap-2">
+                      <span>Signed in as {currentUser.name}</span>
+                      <span className="text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-800 px-2 py-0.5 rounded-full">
+                        Saved Account
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-zinc-400 mt-0.5">
+                      Your details and saved addresses are automatically filled.
+                    </div>
+                  </div>
+                </div>
+              ) : currentUser && currentUser.isGuest ? (
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full bg-amber-950/80 border border-amber-800/60 flex items-center justify-center text-amber-400 shrink-0">
+                    <Sparkles size={18} />
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold text-white flex items-center gap-2">
+                      <span>Ordering as Guest</span>
+                      <span className="text-[10px] font-mono bg-zinc-800 text-amber-300 px-2 py-0.5 rounded-full">
+                        ID: {currentUser.id}
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-zinc-400 mt-0.5">
+                      Traceable guest session. Expires once fulfilled.
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-400 shrink-0">
+                    <User size={18} />
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold text-zinc-200">
+                      Have an account or want to save your details?
+                    </div>
+                    <div className="text-[11px] text-zinc-400 mt-0.5">
+                      Sign in or create an account for 1-click orders and address book.
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-center gap-2 shrink-0">
+                {currentUser ? (
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    className="text-xs text-zinc-400 hover:text-red-400 flex items-center gap-1 transition px-2 py-1"
+                  >
+                    <LogOut size={13} /> Switch Account / Guest
+                  </button>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAuthDefaultTab("login");
+                        setAuthModalOpen(true);
+                      }}
+                      className="btn-secondary text-xs px-3 py-1.5"
+                    >
+                      Sign In
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAuthDefaultTab("guest");
+                        setAuthModalOpen(true);
+                      }}
+                      className="text-xs text-red-400 hover:text-red-300 font-semibold px-2 py-1"
+                    >
+                      Guest Checkout
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+
             {/* Customer Information */}
             <div>
               <div className="flex items-center justify-between mb-4">
@@ -700,6 +847,16 @@ function CheckoutContent() {
           </aside>
         </div>
       )}
+
+      {/* Customer Auth Modal */}
+      <AuthModal
+        isOpen={authModalOpen}
+        onClose={() => setAuthModalOpen(false)}
+        defaultTab={authDefaultTab}
+        onSuccess={(user) => {
+          applyCustomerSession(user);
+        }}
+      />
     </div>
   );
 }

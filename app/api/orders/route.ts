@@ -141,7 +141,9 @@ export async function POST(request: Request) {
       order_id: order.id,
       old_status: null,
       new_status: "PENDING",
-      note: "Order placed online via website guest checkout"
+      note: input.guestId
+        ? `Order placed online (Guest: ${input.guestId})`
+        : "Order placed online via customer account"
     });
 
     // 5. Payment record

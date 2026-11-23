@@ -153,7 +153,9 @@ export const orderBaseSchema = z.object({
   address: z.string().trim().max(300).optional(),
   instructions: z.string().trim().max(500).optional(),
   paymentMethod: paymentMethodEnum,
-  items: z.array(orderItemInputSchema).min(1, "Order must contain at least one meal")
+  items: z.array(orderItemInputSchema).min(1, "Order must contain at least one meal"),
+  guestId: z.string().trim().optional(),
+  customerId: z.string().trim().optional()
 });
 
 export const createOrderSchema = orderBaseSchema.refine(

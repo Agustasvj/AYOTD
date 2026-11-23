@@ -179,8 +179,31 @@ function TrackOrderContent() {
             </div>
           </div>
 
+          {/* Completed Order Banner */}
+          {orderData.status === "COMPLETED" && (
+            <div className="p-4 rounded-xl bg-gradient-to-r from-emerald-950/70 via-zinc-900 to-zinc-900 border border-emerald-800/70 flex items-center justify-between gap-3 animate-fade-in shadow-lg">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-emerald-600/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shrink-0">
+                  <CheckCircle2 size={20} />
+                </div>
+                <div>
+                  <div className="text-[10px] text-emerald-400 font-extrabold uppercase tracking-wider flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                    Order Completed
+                  </div>
+                  <div className="text-sm font-black text-white mt-0.5">
+                    Order Fulfilled & Completed
+                  </div>
+                  <p className="text-[11px] text-zinc-400 mt-0.5">
+                    Your meal has been delivered. Thank you for ordering with AYOTD!
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Dispatch Notice Banner */}
-          {(orderData.dispatched_at || orderData.status === "OUT_FOR_DELIVERY") && (
+          {orderData.status !== "COMPLETED" && (orderData.dispatched_at || orderData.status === "OUT_FOR_DELIVERY") && (
             <div className="p-4 rounded-xl bg-gradient-to-r from-red-950/70 via-zinc-900 to-zinc-900 border border-red-800/70 flex items-center justify-between gap-3 animate-fade-in shadow-lg">
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 rounded-full bg-red-600/20 border border-red-500/40 flex items-center justify-center text-red-400 shrink-0">

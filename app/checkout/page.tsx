@@ -19,7 +19,11 @@ import {
   ShieldCheck,
   PhoneCall,
   Loader2,
-  Check
+  Check,
+  UserCheck,
+  PlusCircle,
+  MapPin,
+  Trash2
 } from "lucide-react";
 
 function CheckoutContent() {
@@ -87,6 +91,77 @@ function CheckoutContent() {
     paymentMethod: "MPESA" as "MPESA" | "CASH"
   });
 
+  // Cached customer profile & saved addresses
+  const [savedAddresses, setSavedAddresses] = useState<string[]>([]);
+  const [hasCachedProfile, setHasCachedProfile] = useState(false);
+  const [showAddressManager, setShowAddressManager] = useState(false);
+  const [newAddressInput, setNewAddressInput] = useState("");
+
+  // Load cached profile on initial mount
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("ayotd_customer_profile");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed.phone || parsed.customerName) {
+          setHasCachedProfile(true);
+          setForm((prev) => ({
+            ...prev,
+            customerName: parsed.customerName || prev.customerName,
+            phone: parsed.phone || prev.phone,
+            address: parsed.address || (parsed.addresses && parsed.addresses[0]) || prev.address
+          }));
+        }
+        if (Array.isArray(parsed.addresses)) {
+          setSavedAddresses(parsed.addresses);
+        } else if (parsed.address) {
+          setSavedAddresses([parsed.address]);
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  // Save profile and address list helper
+  function saveProfile(name: string, phone: string, address: string, allAddresses: string[]) {
+    try {
+      const cleanAddresses = Array.from(new Set([address, ...allAddresses].map((a) => a.trim()).filter(Boolean)));
+      localStorage.setItem(
+        "ayotd_customer_profile",
+        JSON.stringify({
+          customerName: name.trim(),
+          phone: phone.trim(),
+          address: address.trim(),
+          addresses: cleanAddresses
+        })
+      );
+      setSavedAddresses(cleanAddresses);
+      setHasCachedProfile(true);
+    } catch {
+      // ignore
+    }
+  }
+
+  function handleAddAddress(addr: string) {
+    const trimmed = addr.trim();
+    if (!trimmed) return;
+    const updated = Array.from(new Set([...savedAddresses, trimmed]));
+    setSavedAddresses(updated);
+    setForm((prev) => ({ ...prev, address: trimmed }));
+    setNewAddressInput("");
+    saveProfile(form.customerName, form.phone, trimmed, updated);
+  }
+
+  function handleRemoveAddress(addrToRemove: string) {
+    const updated = savedAddresses.filter((a) => a !== addrToRemove);
+    setSavedAddresses(updated);
+    if (form.address === addrToRemove) {
+      setForm((prev) => ({ ...prev, address: updated[0] || "" }));
+    }
+    saveProfile(form.customerName, form.phone, form.address === addrToRemove ? (updated[0] || "") : form.address, updated);
+  }
+
   const deliveryFee = form.fulfilmentType === "DELIVERY" ? KES_DELIVERY_FEE : 0;
   const grandTotal = subtotal + deliveryFee;
 
@@ -150,6 +225,9 @@ function CheckoutContent() {
 
       const orderNumber = data.orderNumber;
       const orderId = data.orderId;
+
+      // Save customer profile and chosen address to cache
+      saveProfile(form.customerName, form.phone, form.address, savedAddresses);
 
       // Clear persisted cart once order is confirmed
       try {
@@ -232,9 +310,16 @@ function CheckoutContent() {
           <form onSubmit={handleSubmit} className="panel p-6 sm:p-8 space-y-6">
             {/* Customer Information */}
             <div>
-              <h2 className="text-lg font-bold text-white mb-4">
-                1. Your Contact Details
-              </h2>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-bold text-white">
+                  1. Your Contact Details
+                </h2>
+                {hasCachedProfile && (
+                  <span className="text-[11px] text-emerald-400 bg-emerald-950/60 border border-emerald-800/50 px-2 py-0.5 rounded-full flex items-center gap-1">
+                    <UserCheck size={12} /> Auto-filled from your profile
+                  </span>
+                )}
+              </div>
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-2">
@@ -245,16 +330,20 @@ function CheckoutContent() {
                     type="text"
                     placeholder="e.g. Kevin Otieno"
                     value={form.customerName}
-                    onChange={(e) =>
-                      setForm({ ...form, customerName: e.target.value })
-                    }
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setForm({ ...form, customerName: val });
+                      if (val.trim() && form.phone.trim()) {
+                        saveProfile(val, form.phone, form.address, savedAddresses);
+                      }
+                    }}
                     className="text-sm"
                   />
                 </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-2">
-                    Kenyan Phone Number *
+                    Phone Number *
                   </label>
                   <input
                     required
@@ -268,7 +357,11 @@ function CheckoutContent() {
                       if (digits.startsWith("254")) {
                         digits = "0" + digits.slice(3);
                       }
-                      setForm({ ...form, phone: digits.slice(0, 10) });
+                      const normalized = digits.slice(0, 10);
+                      setForm({ ...form, phone: normalized });
+                      if (form.customerName.trim() && normalized.length === 10) {
+                        saveProfile(form.customerName, normalized, form.address, savedAddresses);
+                      }
                     }}
                     className={`text-sm ${
                       form.phone.length === 10
@@ -345,17 +438,128 @@ function CheckoutContent() {
               {form.fulfilmentType === "DELIVERY" && (
                 <div className="space-y-4 animate-fade-in">
                   <div>
-                    <label className="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-2">
-                      Delivery Address / Campus Landmark *
-                    </label>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="block text-xs font-semibold text-zinc-300 uppercase tracking-wider">
+                        Delivery Address *
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setShowAddressManager(!showAddressManager)}
+                        className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1 transition"
+                      >
+                        <MapPin size={12} />
+                        {showAddressManager ? "Close Address Book" : savedAddresses.length > 0 ? "Saved Addresses" : "Save Multiple Addresses"}
+                      </button>
+                    </div>
+
+                    {/* Saved address selector pills */}
+                    {savedAddresses.length > 0 && (
+                      <div className="mb-3 flex flex-wrap gap-1.5">
+                        {savedAddresses.map((addr) => (
+                          <button
+                            key={addr}
+                            type="button"
+                            onClick={() => {
+                              setForm({ ...form, address: addr });
+                              saveProfile(form.customerName, form.phone, addr, savedAddresses);
+                            }}
+                            className={`text-xs px-2.5 py-1 rounded-lg border transition-all text-left flex items-center gap-1.5 ${
+                              form.address === addr
+                                ? "border-red-600 bg-red-950/60 text-white font-medium"
+                                : "border-zinc-800 bg-zinc-900/80 text-zinc-400 hover:border-zinc-700"
+                            }`}
+                          >
+                            <span className="truncate max-w-[200px]">{addr}</span>
+                            {form.address === addr && <Check size={12} className="text-red-400 shrink-0" />}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
                     <textarea
                       required
                       rows={2}
                       placeholder="e.g. Hall 4 (Moi), 2nd Floor, Room 218, or Science Lab Block B"
                       value={form.address}
-                      onChange={(e) => setForm({ ...form, address: e.target.value })}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setForm({ ...form, address: val });
+                      }}
+                      onBlur={() => {
+                        if (form.address.trim()) {
+                          saveProfile(form.customerName, form.phone, form.address, savedAddresses);
+                        }
+                      }}
                       className="text-sm"
                     />
+
+                    {/* Multiple address manager accordion */}
+                    {showAddressManager && (
+                      <div className="mt-3 p-3.5 rounded-xl bg-zinc-900/90 border border-zinc-800 space-y-3">
+                        <div className="text-xs font-bold text-zinc-300 flex items-center gap-1.5">
+                          <MapPin size={13} className="text-red-400" />
+                          <span>Manage Saved Delivery Addresses</span>
+                        </div>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            placeholder="Add another address (e.g. Science Lab B)"
+                            value={newAddressInput}
+                            onChange={(e) => setNewAddressInput(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                handleAddAddress(newAddressInput);
+                              }
+                            }}
+                            className="text-xs py-2 flex-1"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleAddAddress(newAddressInput)}
+                            className="btn-secondary text-xs px-3 py-2 shrink-0 flex items-center gap-1"
+                          >
+                            <PlusCircle size={13} /> Add
+                          </button>
+                        </div>
+                        {savedAddresses.length > 0 && (
+                          <div className="space-y-1.5 pt-1">
+                            {savedAddresses.map((addr) => (
+                              <div
+                                key={addr}
+                                className="flex items-center justify-between text-xs p-2 rounded-lg bg-zinc-950 border border-zinc-850"
+                              >
+                                <span className="text-zinc-300 truncate max-w-[240px] sm:max-w-[340px]">
+                                  {addr}
+                                </span>
+                                <div className="flex items-center gap-2">
+                                  {form.address !== addr && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setForm({ ...form, address: addr });
+                                        saveProfile(form.customerName, form.phone, addr, savedAddresses);
+                                      }}
+                                      className="text-red-400 hover:underline text-[11px]"
+                                    >
+                                      Use
+                                    </button>
+                                  )}
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveAddress(addr)}
+                                    className="text-zinc-500 hover:text-red-400 p-1"
+                                    title="Delete address"
+                                  >
+                                    <Trash2 size={12} />
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               )}

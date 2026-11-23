@@ -1,11 +1,11 @@
 import Link from "next/link";
-import { UtensilsCrossed, ArrowLeft } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 
 export default function NotFound() {
   return (
     <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-6 text-center">
-      <div className="w-16 h-16 rounded-full border border-red-500/60 bg-red-950/40 flex items-center justify-center text-red-400 mb-6">
-        <UtensilsCrossed size={32} />
+      <div className="w-20 h-20 rounded-full border border-red-600/60 overflow-hidden bg-black mb-6 shadow-[0_0_25px_rgba(185,28,53,0.3)]">
+        <img src="/logo.jpg" alt="AYOTD Delicacies Logo" className="w-full h-full object-cover" />
       </div>
 
       <div className="eyebrow mb-2">Page Not Found</div>

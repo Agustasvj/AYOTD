@@ -50,8 +50,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         {/* Mobile Header */}
         <div className="lg:hidden flex items-center justify-between p-4 border-b border-zinc-800 bg-zinc-950 sticky top-0 z-40">
           <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-full border border-red-600 bg-red-950 flex items-center justify-center text-red-500 font-bold text-xs">
-              AY
+            <div className="h-8 w-8 rounded-full border border-red-600/60 overflow-hidden flex items-center justify-center bg-black shrink-0">
+              <img
+                src="/logo.jpg"
+                alt="AYOTD Logo"
+                className="w-full h-full object-cover"
+              />
             </div>
             <div>
               <span className="font-bold text-sm tracking-wider">AYOTD</span>
@@ -99,8 +103,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           {/* Logo & Role Badge */}
           <div className="flex items-center justify-between pb-6 border-b border-zinc-800/80">
             <Link href="/" className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full border-2 border-red-600 bg-red-950/40 flex items-center justify-center text-red-500 font-bold text-sm">
-                AY
+              <div className="h-10 w-10 rounded-full border border-red-600/60 overflow-hidden flex items-center justify-center bg-black shrink-0">
+                <img
+                  src="/logo.jpg"
+                  alt="AYOTD Logo"
+                  className="w-full h-full object-cover"
+                />
               </div>
               <div>
                 <div className="font-bold text-sm tracking-wider text-white">AYOTD</div>

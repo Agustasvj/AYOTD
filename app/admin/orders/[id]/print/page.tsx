@@ -75,7 +75,7 @@ export default async function OrderPrintPage(props: {
       payment_ref: "SHB892KL90",
       created_at: new Date().toISOString(),
       customer: {
-        full_name: "Kevin Otieno",
+        full_name: "Amina Wekesa",
         phone: "0712345678"
       },
       items: [
@@ -107,6 +107,11 @@ export default async function OrderPrintPage(props: {
       <div className="max-w-2xl mx-auto bg-white text-black p-8 sm:p-10 rounded-2xl shadow-2xl print:shadow-none print:rounded-none print:p-6 print:max-w-full border border-zinc-200 print:border-0 font-sans">
         {/* Header */}
         <div className="border-b-2 border-black pb-4 text-center">
+          <img
+            src="/logo.jpg"
+            alt="AYOTD Delicacies Logo"
+            className="h-16 w-16 rounded-full object-cover mx-auto mb-2"
+          />
           <div className="text-xl font-black tracking-widest uppercase">
             A Year or Two Delicacies
           </div>

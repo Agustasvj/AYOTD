@@ -113,8 +113,8 @@ export default function RiderPortalPage() {
       {/* Mobile Rider Top Bar */}
       <div className="flex items-center justify-between py-4 border-b border-zinc-800">
         <div className="flex items-center gap-2">
-          <div className="w-9 h-9 rounded-full bg-red-950 border border-red-600 flex items-center justify-center text-red-500">
-            <Bike size={18} />
+          <div className="w-9 h-9 rounded-full border border-red-600 overflow-hidden bg-black shrink-0">
+            <img src="/logo.jpg" alt="AYOTD Delicacies Logo" className="w-full h-full object-cover" />
           </div>
           <div>
             <div className="font-bold text-sm tracking-wide">AYOTD RUNNER</div>

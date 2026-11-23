@@ -402,7 +402,7 @@ function CheckoutContent() {
                       </span>
                     </div>
                     <div className="text-[11px] text-zinc-400 mt-0.5">
-                      Traceable guest session. Expires once fulfilled.
+                      Temporary ID for one order.
                     </div>
                   </div>
                 </div>
@@ -475,11 +475,6 @@ function CheckoutContent() {
                 <h2 className="text-lg font-bold text-white">
                   1. Your Contact Details
                 </h2>
-                {hasCachedProfile && (
-                  <span className="text-[11px] text-emerald-400 bg-emerald-950/60 border border-emerald-800/50 px-2 py-0.5 rounded-full flex items-center gap-1">
-                    <UserCheck size={12} /> Auto-filled from your profile
-                  </span>
-                )}
               </div>
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
@@ -489,7 +484,7 @@ function CheckoutContent() {
                   <input
                     required
                     type="text"
-                    placeholder="e.g. Kevin Otieno"
+                    placeholder="e.g. Amina Wekesa"
                     value={form.customerName}
                     onChange={(e) => {
                       const val = e.target.value;
@@ -511,7 +506,7 @@ function CheckoutContent() {
                     type="tel"
                     inputMode="numeric"
                     maxLength={10}
-                    placeholder="0712345678 or 0112345678"
+                    placeholder="0712345678"
                     value={form.phone}
                     onChange={(e) => {
                       let digits = e.target.value.replace(/\D/g, "");
@@ -535,7 +530,7 @@ function CheckoutContent() {
                   <div className="min-h-[18px] mt-1">
                     {!form.phone ? (
                       <p className="text-[11px] text-zinc-500">
-                        Enter 10-digit number (e.g. 0712345678 or 0112345678)
+                        Enter your 10-digit number (e.g. 0712345678)
                       </p>
                     ) : form.phone.length < 10 ? (
                       <p className="text-[11px] text-amber-400 font-medium">
@@ -640,7 +635,7 @@ function CheckoutContent() {
                     <textarea
                       required
                       rows={2}
-                      placeholder="e.g. Hall 4 (Moi), 2nd Floor, Room 218, or Science Lab Block B"
+                      placeholder="e.g. Hall 4, 2nd Floor, Room 218"
                       value={form.address}
                       onChange={(e) => {
                         const val = e.target.value;
@@ -664,7 +659,7 @@ function CheckoutContent() {
                         <div className="flex gap-2">
                           <input
                             type="text"
-                            placeholder="Add another address (e.g. Science Lab B)"
+                            placeholder="Add another address (e.g. Hall 4, Room 218)"
                             value={newAddressInput}
                             onChange={(e) => setNewAddressInput(e.target.value)}
                             onKeyDown={(e) => {
@@ -851,13 +846,6 @@ function CheckoutContent() {
               </div>
             </div>
 
-            <div className="p-4 rounded-xl bg-zinc-900/80 border border-zinc-800 text-xs text-zinc-400 space-y-2">
-              <div className="font-bold text-zinc-300">AYOTD Order Promise</div>
-              <p>
-                Prices are guaranteed against database records. You can track your kitchen
-                and delivery status in real-time right after confirming.
-              </p>
-            </div>
           </aside>
         </div>
       )}

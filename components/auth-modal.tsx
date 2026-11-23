@@ -145,9 +145,6 @@ export function AuthModal({
         {/* Header */}
         <div className="p-5 border-b border-zinc-800/80 flex items-center justify-between">
           <div>
-            <div className="text-[10px] uppercase font-bold tracking-widest text-red-400">
-              AYOTD Session Access
-            </div>
             <h2 className="text-lg font-black text-white mt-0.5">
               {tab === "login"
                 ? "Sign In to Your Account"
@@ -238,7 +235,7 @@ export function AuthModal({
                   <input
                     required
                     type="text"
-                    placeholder="e.g. Kevin Otieno or 0712345678"
+                    placeholder="e.g. Amina Wekesa or 0712345678"
                     value={loginIdentifier}
                     onChange={(e) => setLoginIdentifier(e.target.value)}
                     className="pl-10 text-sm py-2.5"
@@ -296,7 +293,7 @@ export function AuthModal({
                   <input
                     required
                     type="text"
-                    placeholder="e.g. Kevin Otieno"
+                    placeholder="e.g. Amina Wekesa"
                     value={signupName}
                     onChange={(e) => setSignupName(e.target.value)}
                     className="pl-10 text-sm py-2.5"
@@ -306,14 +303,14 @@ export function AuthModal({
 
               <div>
                 <label className="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-1.5">
-                  Phone Number (for M-Pesa payments) *
+                  Phone Number *
                 </label>
                 <div className="relative">
                   <Phone size={15} className="absolute left-3.5 top-3 text-zinc-500" />
                   <input
                     required
                     type="tel"
-                    placeholder="0712345678 or 0112345678"
+                    placeholder="0712345678"
                     value={signupPhone}
                     onChange={(e) => setSignupPhone(e.target.value)}
                     className="pl-10 text-sm py-2.5"
@@ -340,13 +337,13 @@ export function AuthModal({
 
               <div>
                 <label className="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-1.5">
-                  Campus Delivery Address (Can change anytime)
+                  Delivery Address
                 </label>
                 <div className="relative">
                   <MapPin size={15} className="absolute left-3.5 top-3 text-zinc-500" />
                   <input
                     type="text"
-                    placeholder="e.g. Hall 4 (Moi), 2nd Floor Room 218"
+                    placeholder="e.g. Hall 4, Room 218"
                     value={signupAddress}
                     onChange={(e) => setSignupAddress(e.target.value)}
                     className="pl-10 text-sm py-2.5"
@@ -359,7 +356,7 @@ export function AuthModal({
                 disabled={loading}
                 className="btn-primary w-full text-sm py-3 mt-3 flex items-center justify-center gap-2"
               >
-                {loading ? <Loader2 size={16} className="animate-spin" /> : "Sign Up & Auto-Fill Details"}
+                {loading ? <Loader2 size={16} className="animate-spin" /> : "Create Account"}
               </button>
 
               <div className="pt-2 text-center text-xs text-zinc-400">
@@ -384,7 +381,7 @@ export function AuthModal({
                   <span>Temporary Guest Session</span>
                 </div>
                 <p className="text-zinc-400 leading-relaxed">
-                  You receive a unique temporary Guest ID for this order. It automatically expires when your meal is delivered, but remains logged for customer accountability in case of any issues.
+                  You will get a temporary ID for one order.
                 </p>
               </div>
 

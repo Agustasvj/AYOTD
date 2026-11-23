@@ -223,7 +223,7 @@ function ManualOrderContent() {
               <input
                 required
                 type="text"
-                placeholder="e.g. Dennis Mwangi"
+                placeholder="e.g. Amina Wekesa"
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
                 className="text-xs sm:text-sm"
@@ -239,7 +239,7 @@ function ManualOrderContent() {
                 type="tel"
                 inputMode="numeric"
                 maxLength={10}
-                placeholder="07XXXXXXXX or 01XXXXXXXX"
+                placeholder="0712345678"
                 value={phone}
                 onChange={(e) => {
                   let digits = e.target.value.replace(/\D/g, "");
@@ -259,7 +259,7 @@ function ManualOrderContent() {
               <div className="min-h-[18px] mt-1">
                 {!phone ? (
                   <p className="text-[11px] text-zinc-500">
-                    10-digit number (e.g. 0712345678 or 0112345678)
+                    10-digit number (e.g. 0712345678)
                   </p>
                 ) : phone.length < 10 ? (
                   <p className="text-[11px] text-amber-400 font-medium">

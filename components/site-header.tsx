@@ -63,7 +63,7 @@ export function SiteHeader({ cartCount = 0, onOpenCart }: SiteHeaderProps) {
         <div className="container-shell flex justify-between items-center text-[11px] sm:text-xs">
           <div className="flex items-center gap-2">
             <span className="inline-block w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-            <span>Delivering across all campus hostels & faculty blocks</span>
+            <span>Fast Delivery</span>
           </div>
           <div className="hidden sm:flex items-center gap-4 text-zinc-300">
             <span className="flex items-center gap-1"><Clock size={13} className="text-red-400" /> Open 9:00 AM – 10:30 PM</span>
@@ -76,8 +76,12 @@ export function SiteHeader({ cartCount = 0, onOpenCart }: SiteHeaderProps) {
         <div className="container-shell h-20 flex items-center justify-between">
           {/* Brand Logo */}
           <Link href="/" className="flex items-center gap-3 group">
-            <div className="h-11 w-11 rounded-full border-2 border-red-600 bg-red-950/40 flex items-center justify-center text-red-500 group-hover:scale-105 transition shadow-[0_0_15px_rgba(185,28,53,0.3)]">
-              <UtensilsCrossed size={21} />
+            <div className="h-11 w-11 rounded-full border border-red-600/60 overflow-hidden flex items-center justify-center bg-black group-hover:scale-105 transition shadow-[0_0_15px_rgba(185,28,53,0.3)] shrink-0">
+              <img
+                src="/logo.jpg"
+                alt="AYOTD Delicacies Logo"
+                className="w-full h-full object-cover"
+              />
             </div>
             <div>
               <div className="font-bold tracking-[.15em] text-sm text-white group-hover:text-red-200 transition">

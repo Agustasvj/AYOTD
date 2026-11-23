@@ -154,7 +154,7 @@ export default function HomePage() {
             <div>
               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-950/60 border border-red-800/50 text-red-300 text-xs font-semibold mb-6">
                 <Flame size={14} className="text-red-400" />
-                <span>Campus Delicacies • Fast Delivery to Hostels & Labs</span>
+                <span>Campus Delicacies • Fast Delivery</span>
               </div>
 
               <h1 className="font-[Playfair_Display] text-4xl sm:text-6xl lg:text-7xl leading-[1.06] text-white">
@@ -428,6 +428,9 @@ export default function HomePage() {
       <footer className="border-t border-white/10 bg-black py-12 text-zinc-500 text-xs">
         <div className="container-shell grid sm:grid-cols-2 md:grid-cols-4 gap-8 mb-10">
           <div>
+            <div className="h-14 w-14 rounded-full border border-red-600/60 overflow-hidden bg-black mb-3">
+              <img src="/logo.jpg" alt="AYOTD Delicacies Logo" className="w-full h-full object-cover" />
+            </div>
             <div className="font-bold tracking-[.15em] text-white text-sm">
               A YEAR OR TWO
             </div>
@@ -444,10 +447,8 @@ export default function HomePage() {
               Campus Deliveries
             </h4>
             <ul className="space-y-1.5 text-zinc-400">
-              <li>All Student Hostels</li>
-              <li>Faculty Lecture Halls</li>
-              <li>University Labs & Library</li>
-              <li>Campus Collection Counter</li>
+              <li>Student Hostels</li>
+              <li>Around stage or within Moi Main Campus</li>
             </ul>
           </div>
 

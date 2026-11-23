@@ -31,12 +31,12 @@ export async function GET(request: Request) {
     if (db && !session.isGuest && !session.customerId.startsWith("cust-")) {
       const { data: addrRows } = await db
         .from("customer_addresses")
-        .select("location")
+        .select("location, label")
         .eq("customer_id", session.customerId);
 
       if (addrRows && addrRows.length > 0) {
         for (const row of addrRows) {
-          if (row.location && !addresses.includes(row.location)) {
+          if (row.location && row.label !== "AUTH_CREDENTIALS" && !addresses.includes(row.location)) {
             addresses.push(row.location);
           }
         }
@@ -111,24 +111,31 @@ export async function PUT(request: Request) {
           );
         }
 
-        const { data: customerRecord } = await db
-          .from("customers")
-          .select("password_hash")
-          .eq("id", session.customerId)
-          .single();
+        const { data: authRecord } = await db
+          .from("customer_addresses")
+          .select("id, instructions")
+          .eq("customer_id", session.customerId)
+          .eq("label", "AUTH_CREDENTIALS")
+          .maybeSingle();
 
-        if (customerRecord?.password_hash) {
-          const valid = verifyPassword(currentPassword, customerRecord.password_hash);
+        if (authRecord?.instructions) {
+          const valid = verifyPassword(currentPassword, authRecord.instructions);
           if (!valid) {
             return NextResponse.json(
               { error: "Incorrect current password." },
               { status: 400 }
             );
           }
+
+          // Update password
+          await db
+            .from("customer_addresses")
+            .update({ instructions: hashPassword(newPassword) })
+            .eq("id", authRecord.id);
         }
       }
 
-      // Check if new phone is used by someone else
+      // Check if new phone is used by another customer
       if (cleanPhone !== session.phone) {
         const { data: phoneConflict } = await db
           .from("customers")
@@ -145,25 +152,15 @@ export async function PUT(request: Request) {
         }
       }
 
-      const updateData: any = {
-        full_name: trimmedName,
-        phone: cleanPhone,
-        default_address: trimmedAddress || null,
-        updated_at: new Date().toISOString()
-      };
-
-      if (newPassword && newPassword.length >= 4) {
-        updateData.password_hash = hashPassword(newPassword);
-      }
-
-      const { error: updateErr } = await db
+      // Update customer details in DB
+      await db
         .from("customers")
-        .update(updateData)
+        .update({
+          full_name: trimmedName,
+          phone: cleanPhone,
+          updated_at: new Date().toISOString()
+        })
         .eq("id", session.customerId);
-
-      if (updateErr) {
-        console.warn("Supabase customer update error:", updateErr.message);
-      }
 
       // Add address to customer_addresses if new
       if (trimmedAddress) {
@@ -171,7 +168,7 @@ export async function PUT(request: Request) {
           await db.from("customer_addresses").insert({
             customer_id: session.customerId,
             location: trimmedAddress,
-            label: "Updated"
+            label: "Default"
           });
         } catch {}
       }

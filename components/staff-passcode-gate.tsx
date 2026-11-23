@@ -126,8 +126,8 @@ export function StaffPasscodeGate({
         {/* Brand Icon & Shield Header */}
         <div className="text-center mb-6">
           <div className="relative inline-block mb-3">
-            <div className="h-16 w-16 rounded-2xl bg-zinc-900 border-2 border-red-600/80 flex items-center justify-center text-red-500 shadow-lg shadow-red-950/60 mx-auto">
-              <Lock className="w-8 h-8" />
+            <div className="h-20 w-20 rounded-full border-2 border-red-600/80 overflow-hidden bg-black shadow-lg shadow-red-950/60 mx-auto">
+              <img src="/logo.jpg" alt="AYOTD Delicacies Logo" className="w-full h-full object-cover" />
             </div>
             <div className="absolute -bottom-1 -right-1 bg-red-600 text-white rounded-full p-1 border-2 border-zinc-950">
               <ShieldCheck className="w-3.5 h-3.5" />

@@ -167,14 +167,14 @@ export function EditProfileModal({
 
           <div>
             <label className="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-1.5">
-              Phone Number (for M-Pesa payments) *
+              Phone Number *
             </label>
             <div className="relative">
               <Phone size={15} className="absolute left-3.5 top-3 text-zinc-500" />
               <input
                 required
                 type="tel"
-                placeholder="0712345678 or 0112345678"
+                placeholder="0712345678"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 className="pl-10 text-sm py-2.5"
@@ -190,7 +190,7 @@ export function EditProfileModal({
               <MapPin size={15} className="absolute left-3.5 top-3 text-zinc-500" />
               <input
                 type="text"
-                placeholder="e.g. Hall 4 (Moi), Room 218"
+                placeholder="e.g. Hall 4, Room 218"
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
                 className="pl-10 text-sm py-2.5"
